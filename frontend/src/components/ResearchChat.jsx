@@ -1,12 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { postChat } from '../api';
+import { postChat, fetchChatHistory, clearChatHistory } from '../api';
 
 function ToolChip({ tool, args }) {
   if (!tool) return null;
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-mono rounded-md bg-jev/10 text-jev border border-jev/20">
-      🔧 {tool}({args?.symbol || ''})
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-mono rounded-md bg-jev/15 text-jev border border-jev/30">
+      🔧 {tool}({args?.symbol || args?.agent || ''})
     </span>
   );
 }
@@ -17,7 +17,7 @@ function TypingIndicator() {
       {[0, 1, 2].map(i => (
         <motion.div
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-muted"
+          className="w-1.5 h-1.5 rounded-full bg-gold"
           animate={{ y: [0, -4, 0] }}
           transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.15 }}
         />
@@ -30,11 +30,33 @@ export default function ResearchChat({ selectedSignal }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Load persistent chat history from DB when a signal is selected
+  useEffect(() => {
+    if (!selectedSignal) {
+      setMessages([]);
+      return;
+    }
+    setLoadingHistory(true);
+    fetchChatHistory(selectedSignal.id)
+      .then(res => {
+        setMessages(res.messages || []);
+      })
+      .catch(err => {
+        console.warn('Failed to load chat history:', err);
+      })
+      .finally(() => {
+        setLoadingHistory(false);
+      });
+  }, [selectedSignal?.id]);
 
   const quickPrompts = [
-    { label: '📄 Latest filing', query: 'Pull the latest SEC filing' },
-    { label: '📰 News', query: 'What is the latest news?' },
-    { label: '📈 Price', query: 'Show me the price performance' },
+    { label: '📈 Ask @Value', query: '@value What is your strongest catalyst for buying this stock?' },
+    { label: '🛡️ Challenge @Risk', query: '@risk What are the biggest red flags and downside risks?' },
+    { label: '📰 Live News', query: 'What is the latest news and sentiment?' },
+    { label: '📄 Filing', query: 'Pull the latest financial filing bullets' },
+    { label: '📊 Valuation', query: 'Show me the price performance and market cap' },
   ];
 
   const sendMessage = useCallback(async (text) => {
@@ -56,7 +78,7 @@ export default function ResearchChat({ selectedSignal }) {
     } catch (err) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        text: 'Sorry, something went wrong. Please try again.',
+        text: 'Sorry, communication with the research committee timed out. Please try again.',
         error: true,
       }]);
     } finally {
@@ -64,56 +86,96 @@ export default function ResearchChat({ selectedSignal }) {
     }
   }, [selectedSignal]);
 
+  const handleClear = useCallback(async () => {
+    if (!selectedSignal) return;
+    try {
+      await clearChatHistory(selectedSignal.id);
+      setMessages([]);
+    } catch (e) {
+      console.warn('Failed to clear chat:', e);
+    }
+  }, [selectedSignal]);
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-panel">
       {/* Header */}
-      <div className="p-4 border-b border-border">
-        <h3 className="text-sm font-semibold text-text">Research Assistant</h3>
-        <p className="text-[11px] text-muted">
-          {selectedSignal
-            ? `Researching ${selectedSignal.symbol}`
-            : 'Select a signal to start'}
-        </p>
+      <div className="p-3.5 border-b border-border flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-text flex items-center gap-1.5">
+            <span>Research & Committee Chat</span>
+          </h3>
+          <p className="text-[11px] text-muted">
+            {selectedSignal
+              ? `Live context: ${selectedSignal.symbol} (${selectedSignal.market_cap_display || ''})`
+              : 'Select a stock to interrogate analysts'}
+          </p>
+        </div>
+        {selectedSignal && messages.length > 0 && (
+          <button
+            onClick={handleClear}
+            className="text-[10px] text-muted hover:text-risk px-2 py-1 rounded bg-white/5 border border-white/10 transition"
+            title="Clear saved chat history for this stock"
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-muted text-sm">Ask me about filings, news, or price data.</p>
+        {loadingHistory ? (
+          <div className="text-center py-6 text-muted text-xs animate-pulse">
+            Loading saved research context...
           </div>
-        )}
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[90%] p-3 rounded-2xl text-sm
-              ${msg.role === 'user'
-                ? 'bg-gold/10 border border-gold/20 text-text'
-                : msg.error
-                  ? 'bg-risk/5 border border-risk/20 text-risk'
-                  : 'bg-panel border border-border text-text/90'
-              }`}>
-              {msg.tool && (
-                <div className="mb-2">
-                  <ToolChip tool={msg.tool} args={msg.args} />
-                </div>
-              )}
-              <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+        ) : messages.length === 0 ? (
+          <div className="text-center py-8 px-4">
+            <div className="text-2xl mb-2">💬</div>
+            <p className="text-text font-medium text-xs mb-1">Talk with the Analysts</p>
+            <p className="text-muted text-[11px] leading-relaxed">
+              Tag <span className="text-value font-mono">@value</span> or <span className="text-risk font-mono">@risk</span> to interrogate the committee, or ask for live filings & Tavily news.
+            </p>
+          </div>
+        ) : null}
+
+        {messages.map((msg, i) => {
+          const isUser = msg.role === 'user';
+          const isValueAgent = msg.text?.includes('[Value Agent]');
+          const isRiskAgent = msg.text?.includes('[Risk Agent]');
+
+          return (
+            <div key={i} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[92%] p-3 rounded-2xl text-xs leading-relaxed
+                ${isUser
+                  ? 'bg-gold/15 border border-gold/30 text-text ml-4'
+                  : isValueAgent
+                    ? 'bg-value/10 border border-value/30 text-value mr-4'
+                    : isRiskAgent
+                      ? 'bg-risk/10 border border-risk/30 text-risk mr-4'
+                      : 'bg-white/[0.04] border border-border text-text/90 mr-4'
+                }`}>
+                {msg.tool && (
+                  <div className="mb-1.5">
+                    <ToolChip tool={msg.tool} args={msg.args} />
+                  </div>
+                )}
+                <p className="whitespace-pre-wrap">{msg.text}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         {loading && <TypingIndicator />}
       </div>
 
       {/* Quick prompts */}
-      <div className="px-4 py-2 flex gap-2 flex-wrap">
+      <div className="px-3 py-2 flex gap-1.5 flex-wrap border-t border-border/50 bg-black/20">
         {quickPrompts.map((p, i) => (
           <button
             key={i}
             onClick={() => sendMessage(p.query)}
             disabled={loading || !selectedSignal}
-            className="px-2.5 py-1 text-[11px] rounded-lg bg-panel border border-border
-              text-muted hover:text-text hover:bg-white/5 transition-all duration-200
-              disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-2 py-1 text-[10px] rounded-lg bg-white/5 border border-white/10
+              text-muted hover:text-text hover:bg-white/10 transition
+              disabled:opacity-30 disabled:cursor-not-allowed whitespace-nowrap"
           >
             {p.label}
           </button>
@@ -128,19 +190,19 @@ export default function ResearchChat({ selectedSignal }) {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder={selectedSignal ? "Ask about this stock..." : "Select a signal first"}
+            placeholder={selectedSignal ? "Ask committee or @value / @risk..." : "Select a signal first"}
             disabled={!selectedSignal || loading}
-            className="flex-1 px-3 py-2 text-sm rounded-lg bg-white/[0.03] border border-border
+            className="flex-1 px-3 py-2 text-xs rounded-xl bg-white/[0.03] border border-border
               text-text placeholder:text-muted/50 focus:outline-none focus:border-gold/40
               disabled:opacity-40 transition"
           />
           <button
             type="submit"
             disabled={!input.trim() || loading || !selectedSignal}
-            className="px-3 py-2 rounded-lg bg-gold/15 text-gold text-sm font-medium
-              hover:bg-gold/25 transition disabled:opacity-30 disabled:cursor-not-allowed"
+            className="px-3.5 py-2 rounded-xl bg-gold/20 text-gold text-xs font-semibold
+              hover:bg-gold/30 transition disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            →
+            Send
           </button>
         </form>
       </div>

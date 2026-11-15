@@ -5,7 +5,7 @@ import BoardroomTable from './components/BoardroomTable';
 import ResearchChat from './components/ResearchChat';
 import PortfolioSidebar from './components/PortfolioSidebar';
 import Onboarding from './components/Onboarding';
-import { fetchSignals, fetchDebate, postJevCheck, postTrade, fetchPortfolio } from './api';
+import { fetchSignals, fetchDebate, postJevCheck, postTrade, fetchPortfolio, regenerateDebate } from './api';
 
 function getCookie(name) {
   const value = `; ${document.cookie}`;
@@ -102,6 +102,22 @@ export default function App({ bootstrapData = {} }) {
     }
   }, [addToast]);
 
+  const handleRegenerateDebate = useCallback(async () => {
+    if (!selectedSignal) return;
+    setLoadingDebate(true);
+    setDebateFinished(false);
+    try {
+      const data = await regenerateDebate(selectedSignal.id);
+      setDebate(data);
+      addToast(`Debate re-generated with AI for ${selectedSignal.symbol}`, 'success');
+    } catch (err) {
+      console.error('Failed to regenerate debate:', err);
+      addToast('Failed to regenerate debate: ' + err.message, 'error');
+    } finally {
+      setLoadingDebate(false);
+    }
+  }, [selectedSignal, addToast]);
+
   // Jev check when quantity changes or debate finishes
   const handleJevCheck = useCallback(async (signalId, qty) => {
     try {
@@ -192,6 +208,7 @@ export default function App({ bootstrapData = {} }) {
             onDebateFinished={handleDebateFinished}
             onExecute={handleExecute}
             onPass={handlePass}
+            onRegenerateDebate={handleRegenerateDebate}
             lessonCard={lessonCard}
           />
         </div>

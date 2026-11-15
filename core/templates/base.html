@@ -19,7 +19,6 @@
                 <a href="{% url 'skills' %}">Skills</a>
                 <a href="{% url 'risk_settings' %}">Settings</a>
                 <a href="{% url 'history' %}">History</a>
-                <a href="{% url 'syllabus' %}">Syllabus</a>
                 {% if perms.core.can_view_audit_log %}
                     <a href="{% url 'audit_log' %}">Audit</a>
                 {% endif %}

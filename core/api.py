@@ -40,6 +40,7 @@ def api_signals(request):
             'sector': s.sector,
             'price': float(s.price),
             'market_cap_usd': s.market_cap_usd,
+            'market_cap_display': s.market_cap_display,
             'ml_confidence': s.ml_confidence,
             'ml_reason': s.ml_reason,
             'sparkline': s.sparkline,
@@ -84,8 +85,8 @@ def api_debate(request, signal_id):
 
     # Compute default quantity
     try:
-        risk = request.user.risk_settings
-        portfolio = request.user.portfolio
+        risk, _ = RiskSettings.objects.get_or_create(user=request.user)
+        portfolio, _ = Portfolio.objects.get_or_create(user=request.user)
         max_value = (portfolio.total_value * risk.max_position_pct) / 100
         default_qty = max(1, int(max_value / signal.price))
     except Exception:
@@ -182,7 +183,7 @@ def api_trade(request):
     )
 
     # Update portfolio if executing
-    portfolio = request.user.portfolio
+    portfolio, _ = Portfolio.objects.get_or_create(user=request.user)
     if decision == 'execute':
         trade_cost = signal.price * quantity
         portfolio.cash -= trade_cost
@@ -215,36 +216,103 @@ def api_trade(request):
 
 @login_required
 @require_POST
-def api_chat(request):
-    """Research assistant chat endpoint."""
+def api_debate_regenerate(request, signal_id):
+    """Regenerate debate dynamically with AI for this signal."""
     try:
-        body = json.loads(request.body)
-        message = body.get('message', '')
-        signal_id = body.get('signal_id')
-    except json.JSONDecodeError:
-        return _json_error('Invalid JSON.')
+        signal = StockSignal.objects.get(pk=signal_id)
+    except StockSignal.DoesNotExist:
+        return _json_error('Signal not found.', 404)
 
-    if not message.strip():
-        return _json_error('Message cannot be empty.')
+    from core.agents.debate import regenerate_debate
+    debate = regenerate_debate(request.user, signal)
+    return api_debate(request, signal_id)
 
-    # Get the symbol from the signal
-    symbol = 'IOLCP.NS'
-    if signal_id:
+
+@login_required
+def api_chat(request):
+    """Research assistant chat endpoint with database persistence."""
+    from core.models import ChatMessage, SkillProfile
+    if request.method == 'POST':
         try:
-            sig = StockSignal.objects.get(pk=signal_id)
-            symbol = sig.symbol
-        except StockSignal.DoesNotExist:
-            pass
+            body = json.loads(request.body)
+            message = body.get('message', '')
+            signal_id = body.get('signal_id')
+        except json.JSONDecodeError:
+            return _json_error('Invalid JSON.')
 
-    result = route_chat(message, symbol)
-    return JsonResponse(result)
+        if not message.strip():
+            return _json_error('Message cannot be empty.')
+
+        # Get the signal
+        sig = None
+        symbol = 'IOLCP.NS'
+        if signal_id:
+            sig = StockSignal.objects.filter(pk=signal_id).first()
+            if sig:
+                symbol = sig.symbol
+
+        active_skill = SkillProfile.objects.filter(user=request.user, is_active=True).first()
+        result = route_chat(message, symbol, signal=sig, skill_profile=active_skill)
+
+        # Save user message & assistant reply if signal is present
+        if sig:
+            ChatMessage.objects.create(
+                user=request.user,
+                signal=sig,
+                role='user',
+                text=message,
+            )
+            ChatMessage.objects.create(
+                user=request.user,
+                signal=sig,
+                role='assistant',
+                text=result['reply'],
+                tool=result.get('tool') or '',
+                args=result.get('args') or {},
+            )
+
+        return JsonResponse(result)
+
+    return _json_error('Method not allowed.', 405)
+
+
+@login_required
+@require_GET
+def api_chat_history(request, signal_id):
+    """Return saved chat history for a signal to save tokens and persist context."""
+    from core.models import ChatMessage
+    messages = ChatMessage.objects.filter(
+        user=request.user,
+        signal_id=signal_id,
+    ).order_by('created_at')[:50]
+
+    data = [
+        {
+            'role': m.role,
+            'text': m.text,
+            'tool': m.tool,
+            'args': m.args,
+            'created_at': m.created_at.isoformat(),
+        }
+        for m in messages
+    ]
+    return JsonResponse({'messages': data})
+
+
+@login_required
+@require_POST
+def api_chat_clear(request, signal_id):
+    """Clear chat history for a signal so user can rerun fresh."""
+    from core.models import ChatMessage
+    ChatMessage.objects.filter(user=request.user, signal_id=signal_id).delete()
+    return JsonResponse({'status': 'cleared'})
 
 
 @login_required
 @require_GET
 def api_portfolio(request):
     """Return the user's portfolio: cash, holdings, total value."""
-    portfolio = request.user.portfolio
+    portfolio, _ = Portfolio.objects.get_or_create(user=request.user)
     holdings = [
         {
             'symbol': h.symbol,

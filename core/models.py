@@ -147,6 +147,15 @@ class StockSignal(models.Model):
         """String representation of StockSignal."""
         return f"{self.symbol} ({self.ml_confidence}%)"
 
+    @property
+    def market_cap_display(self):
+        """Format market cap into Indian Rupees (Cr)."""
+        # If market_cap_usd is in raw amount e.g. 50_000_000, convert or display in Cr
+        cr = self.market_cap_usd / 10_000_000
+        if cr >= 1000:
+            return f"₹{cr:,.0f} Cr"
+        return f"₹{cr:,.1f} Cr"
+
 
 class Debate(models.Model):
     """A recorded debate between Value and Risk agents about a signal."""
@@ -247,3 +256,29 @@ class Trade(models.Model):
         permissions = [
             ('can_view_audit_log', 'Can view Jev audit log'),
         ]
+
+
+class ChatMessage(models.Model):
+    """Saved chat history between user and research assistant/agents for a stock."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='chat_messages',
+    )
+    signal = models.ForeignKey(
+        StockSignal,
+        on_delete=models.CASCADE,
+        related_name='chat_messages',
+    )
+    role = models.CharField(max_length=20)  # user, assistant, agent_value, agent_risk
+    text = models.TextField()
+    tool = models.CharField(max_length=100, blank=True, default='')
+    args = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        """String representation of ChatMessage."""
+        return f"[{self.role}] {self.signal.symbol}: {self.text[:30]}"
+
+    class Meta:
+        ordering = ['created_at']

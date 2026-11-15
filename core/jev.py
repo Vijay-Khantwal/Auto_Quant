@@ -13,8 +13,9 @@ logger = logging.getLogger('core')
 
 def evaluate_trade(user, signal, quantity):
     """Return {"approved": bool, "checks": [{rule, passed, detail}, ...]}."""
-    risk = user.risk_settings
-    portfolio = user.portfolio
+    from core.models import Portfolio, RiskSettings
+    risk, _ = RiskSettings.objects.get_or_create(user=user)
+    portfolio, _ = Portfolio.objects.get_or_create(user=user)
     trade_value = Decimal(str(signal.price)) * Decimal(str(quantity))
     total_value = portfolio.total_value
 

@@ -23,7 +23,7 @@ logger = logging.getLogger('core')
 def home(request):
     """Landing page for anonymous users; dashboard summary for logged-in."""
     if request.user.is_authenticated:
-        portfolio = request.user.portfolio
+        portfolio, _ = Portfolio.objects.get_or_create(user=request.user)
         # SESSION USE (one use): read last_signal_id to offer a resume link
         last_signal_id = request.session.get('last_signal_id')
         last_signal = None
@@ -95,8 +95,8 @@ def boardroom(request):
     active_skill = SkillProfile.objects.filter(
         user=request.user, is_active=True
     ).first()
-    portfolio = request.user.portfolio
-    risk = request.user.risk_settings
+    portfolio, _ = Portfolio.objects.get_or_create(user=request.user)
+    risk, _ = RiskSettings.objects.get_or_create(user=request.user)
 
     bootstrap = {
         'username': request.user.username,
@@ -125,7 +125,7 @@ def boardroom(request):
 @login_required
 def risk_settings(request):
     """Edit risk settings form. POST-redirect-GET with messages flash."""
-    rs = request.user.risk_settings
+    rs, _ = RiskSettings.objects.get_or_create(user=request.user)
     if request.method == 'POST':
         form = RiskSettingsForm(request.POST, instance=rs)
         if form.is_valid():

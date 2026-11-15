@@ -140,10 +140,25 @@ def get_or_create_debate(user, signal):
         return existing
 
     # Try LLM mode
-    llm_provider = os.environ.get('AUTOQUANT_LLM', '').lower()
+    llm_provider = os.environ.get('LLM_PROVIDER', os.environ.get('AUTOQUANT_LLM', '')).lower()
+    has_azure = bool(os.environ.get('AZURE_OPENAI_KEY') and os.environ.get('AZURE_OPENAI_ENDPOINT'))
     turns_data = None
+    meta_override = {}
 
-    if llm_provider == 'anthropic':
+    if llm_provider == 'azure' or has_azure:
+        try:
+            logger.info("Generating dynamic debate via Azure OpenAI for %s...", signal.symbol)
+            llm_result = _generate_azure_debate(user, signal, active_skill)
+            turns_data = llm_result.get('turns', [])
+            meta_override = {
+                'summary': llm_result.get('summary', ''),
+                'lesson': llm_result.get('lesson', ''),
+            }
+        except Exception as e:
+            logger.warning("Azure LLM debate failed, falling back to demo: %s", e)
+            turns_data = None
+
+    elif llm_provider == 'anthropic':
         try:
             turns_data = _generate_llm_debate(user, signal, active_skill)
         except Exception as e:
@@ -173,8 +188,9 @@ def get_or_create_debate(user, signal):
     # Determine summary and lesson
     fixtures = _load_debates_fixture()
     meta = fixtures.get(f"_meta_{signal.symbol}", {})
-    summary = meta.get('summary', 'The committee debated this signal.')
-    lesson = meta.get('lesson',
+    summary = meta_override.get('summary') or meta.get('summary', f'The committee debated {signal.symbol}.')
+    lesson = meta_override.get('lesson') or meta.get(
+        'lesson',
         'Always verify ML signals against fundamental analysis and risk parameters.'
     )
 
@@ -201,6 +217,121 @@ def get_or_create_debate(user, signal):
         )
 
     return debate
+
+
+def regenerate_debate(user, signal):
+    """Delete any existing debate for this user/signal and generate a fresh one."""
+    from core.models import Debate, SkillProfile
+    active_skill = SkillProfile.objects.filter(user=user, is_active=True).first()
+    Debate.objects.filter(signal=signal, user=user, skill_profile=active_skill).delete()
+    return get_or_create_debate(user, signal)
+
+
+def _generate_azure_debate(user, signal, skill_profile):
+    """Generate dynamic boardroom debate using Azure OpenAI."""
+    from openai import AzureOpenAI
+    endpoint = os.environ.get('AZURE_OPENAI_ENDPOINT')
+    key = os.environ.get('AZURE_OPENAI_KEY')
+    version = os.environ.get('AZURE_OPENAI_API_VERSION', '2024-02-15-preview')
+    deployment = os.environ.get('AZURE_OPENAI_DEPLOYMENT_NAME', 'gpt-5.4-mini')
+
+    if not endpoint or not key:
+        raise ValueError("Azure OpenAI endpoint/key missing.")
+
+    client = AzureOpenAI(
+        api_key=key,
+        api_version=version,
+        azure_endpoint=endpoint,
+        max_retries=2,
+    )
+
+    style = skill_profile.parsed.get('style', 'balanced') if skill_profile else 'balanced'
+    instructions = skill_profile.parsed.get('instructions', '') if skill_profile else ''
+
+    prompt = f"""You are simulating an institutional Investment Committee boardroom debate for an Indian stock:
+Ticker: {signal.symbol} ({signal.company_name})
+Sector: {signal.sector}
+Current Price: ₹{signal.price}
+Market Cap: {getattr(signal, 'market_cap_display', f'${signal.market_cap_usd:,}')}
+ML Quantitative Momentum Score: {signal.ml_confidence}%
+Technical/ML Setup: {signal.ml_reason}
+
+Active Committee Style Tuning:
+Style: {style}
+Tuning Directives: {instructions}
+
+Generate a vigorous, high-conviction 5-turn debate between the Value Agent (bullish, seeking growth, valuation discount & catalysts) and the Risk Agent (bearish, scrutinizing valuation, governance, sector headwinds, and liquidity risk).
+
+Output ONLY a JSON object with this exact schema:
+{{
+  "summary": "<1-2 sentence overall verdict of the debate>",
+  "lesson": "<1-2 sentence educational takeaway for retail investors about what to watch in this stock>",
+  "turns": [
+    {{
+      "order": 1,
+      "agent": "value",
+      "stance": "buy",
+      "text": "<Value agent opening argument citing margin expansion, market tailwinds, or business moats>",
+      "evidence": ["<key metric 1>", "<key metric 2>"],
+      "conviction_delta": 12
+    }},
+    {{
+      "order": 2,
+      "agent": "risk",
+      "stance": "object",
+      "text": "<Risk agent counter argument attacking governance, sector headwinds, or valuation stretch>",
+      "evidence": ["<risk point 1>", "<risk point 2>"],
+      "conviction_delta": -10
+    }},
+    {{
+      "order": 3,
+      "agent": "value",
+      "stance": "buy",
+      "text": "<Value agent rebuttal addressing the risk and highlighting competitive moat>",
+      "evidence": ["<point>"],
+      "conviction_delta": 7
+    }},
+    {{
+      "order": 4,
+      "agent": "risk",
+      "stance": "object",
+      "text": "<Risk agent second objection regarding macroeconomic sensitivity or earnings quality>",
+      "evidence": ["<point>"],
+      "conviction_delta": -6
+    }},
+    {{
+      "order": 5,
+      "agent": "value",
+      "stance": "buy",
+      "text": "<Value agent closing conviction summary with risk-reward ratio>",
+      "evidence": ["<point>"],
+      "conviction_delta": 8
+    }}
+  ]
+}}"""
+
+    response = client.chat.completions.create(
+        model=deployment,
+        messages=[
+            {"role": "system", "content": "You are an expert Dalal Street equity research committee member. Output pure JSON only."},
+            {"role": "user", "content": prompt}
+        ],
+        max_completion_tokens=2500,
+    )
+
+    content = response.choices[0].message.content.strip()
+    if content.startswith("```json"):
+        content = content[7:]
+    elif content.startswith("```"):
+        content = content[3:]
+    if content.endswith("```"):
+        content = content[:-3]
+
+    data = json.loads(content.strip())
+    # Validate turns
+    if 'turns' not in data or not isinstance(data['turns'], list):
+        raise ValueError("Invalid turns format from LLM.")
+    return data
 
 
 def _generate_llm_debate(user, signal, skill_profile):

@@ -65,6 +65,22 @@ export function postChat(message, signalId) {
   });
 }
 
+export function fetchChatHistory(signalId) {
+  return apiFetch(`/api/chat/${signalId}/history/`);
+}
+
+export function clearChatHistory(signalId) {
+  return apiFetch(`/api/chat/${signalId}/clear/`, {
+    method: 'POST',
+  });
+}
+
+export function regenerateDebate(signalId) {
+  return apiFetch(`/api/debate/${signalId}/regenerate/`, {
+    method: 'POST',
+  });
+}
+
 export function fetchPortfolio() {
   return apiFetch('/api/portfolio/');
 }

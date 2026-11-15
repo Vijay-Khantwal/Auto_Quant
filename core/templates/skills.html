@@ -2,8 +2,8 @@
 {% block title %}Skills — AutoQuant{% endblock %}
 
 {% block content %}
-<div class="page-container" style="max-width:700px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+<div class="page-container" style="max-width:760px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:0.5rem;">
         <h2>🎯 Skill Profiles</h2>
         <a href="{% url 'skill_download_example' %}" class="btn btn-ghost btn-sm">
             ↓ Download example skill file
@@ -11,40 +11,87 @@
     </div>
     <p class="text-muted" style="margin-bottom:1.5rem;">
         Upload a <code>.md</code> or <code>.yaml</code> file to tune the AI agents' personality.
-        The active skill shapes how agents argue in the boardroom.
+        <strong>Tap or click any skill card below</strong> to read the exact instructions and directives controlling the committee.
     </p>
 
     {# ── Existing Skills ── #}
     {% for skill in skills %}
-        <div class="skill-card {% if skill.is_active %}active{% endif %}">
-            <div>
-                <div class="skill-name">
-                    {{ skill.name }}
-                    {% if skill.is_active %}
-                        <span class="pill pill-gold" style="margin-left:0.5rem;">Active</span>
-                    {% endif %}
+        <div class="glass-card {% if skill.is_active %}active-border{% endif %}" style="margin-bottom:1rem; padding:1.25rem; cursor:pointer;" onclick="toggleSkill('{{ skill.id }}')">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;">
+                <div style="flex:1;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                        <span style="font-weight:600; font-size:1.05rem;">{{ skill.name }}</span>
+                        {% if skill.is_active %}
+                            <span class="pill pill-gold">Active Committee Tuning</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-muted" style="font-size:0.85rem;">
+                        Style: <span class="text-value font-mono">{{ skill.parsed.style|default:"balanced" }}</span> ·
+                        Risk: <span class="text-risk font-mono">{{ skill.parsed.risk_tolerance|default:"medium" }}</span> ·
+                        Added: {{ skill.created_at|date:"d M Y" }}
+                    </div>
                 </div>
-                <div class="skill-meta">
-                    {{ skill.parsed.style|default:"—" }} · {{ skill.parsed.risk_tolerance|default:"—" }} risk
-                    · {{ skill.created_at|date:"d M Y" }}
+
+                <div class="skill-actions" onclick="event.stopPropagation();" style="display:flex; gap:0.5rem; align-items:center;">
+                    {% if not skill.is_active %}
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="activate">
+                            <input type="hidden" name="skill_id" value="{{ skill.id }}">
+                            <button type="submit" class="btn btn-secondary btn-sm">Activate</button>
+                        </form>
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="skill_id" value="{{ skill.id }}">
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Delete this skill?')">Delete</button>
+                        </form>
+                    {% endif %}
+                    <span id="chevron-{{ skill.id }}" style="color:var(--gold); font-size:0.85rem; padding:0.25rem 0.5rem;">▼ Read Directives</span>
                 </div>
             </div>
-            <div class="skill-actions">
-                {% if not skill.is_active %}
-                    <form method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="activate">
-                        <input type="hidden" name="skill_id" value="{{ skill.id }}">
-                        <button type="submit" class="btn btn-secondary btn-sm">Activate</button>
-                    </form>
-                    <form method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="skill_id" value="{{ skill.id }}">
-                        <button type="submit" class="btn btn-danger btn-sm"
-                                onclick="return confirm('Delete this skill?')">Delete</button>
-                    </form>
-                {% endif %}
+
+            {# ── Expandable Details Drawer ── #}
+            <div id="drawer-{{ skill.id }}" style="display:none; margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid var(--border);" onclick="event.stopPropagation();">
+                {# Focus and Avoid Tags #}
+                <div style="display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+                    {% if skill.parsed.focus %}
+                        <div>
+                            <span class="text-muted" style="font-size:0.75rem; text-transform:uppercase; font-weight:600;">Focus Metrics:</span>
+                            <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.2rem;">
+                                {% for item in skill.parsed.focus %}
+                                    <span class="pill pill-value" style="font-size:0.75rem;">+ {{ item }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    {% if skill.parsed.avoid %}
+                        <div>
+                            <span class="text-muted" style="font-size:0.75rem; text-transform:uppercase; font-weight:600;">Avoid Factors:</span>
+                            <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.2rem;">
+                                {% for item in skill.parsed.avoid %}
+                                    <span class="pill pill-risk" style="font-size:0.75rem;">- {{ item }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {# Agent System Instructions #}
+                <div style="margin-bottom:1rem;">
+                    <span class="text-muted" style="font-size:0.75rem; text-transform:uppercase; font-weight:600;">Agent Prompt Directives:</span>
+                    <div style="margin-top:0.35rem; padding:0.85rem 1rem; border-radius:0.5rem; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); font-size:0.88rem; line-height:1.55; white-space:pre-wrap; color:var(--text);">
+{{ skill.parsed.instructions|default:"No custom free-text instructions. Uses default institutional debate prompts." }}
+                    </div>
+                </div>
+
+                {# Raw Upload Preview Toggle #}
+                <details style="font-size:0.8rem; color:var(--muted);">
+                    <summary style="cursor:pointer; color:var(--gold);">View Raw File Content (YAML / Markdown)</summary>
+                    <pre style="margin-top:0.5rem; padding:0.75rem; border-radius:0.5rem; background:rgba(0,0,0,0.4); font-family:var(--font-mono); font-size:0.75rem; overflow-x:auto;">{{ skill.raw_text }}</pre>
+                </details>
             </div>
         </div>
     {% empty %}
@@ -76,4 +123,19 @@
         </form>
     </div>
 </div>
+
+<script>
+function toggleSkill(id) {
+    const drawer = document.getElementById('drawer-' + id);
+    const chevron = document.getElementById('chevron-' + id);
+    if (!drawer) return;
+    if (drawer.style.display === 'none' || drawer.style.display === '') {
+        drawer.style.display = 'block';
+        if (chevron) chevron.innerText = '▲ Hide Directives';
+    } else {
+        drawer.style.display = 'none';
+        if (chevron) chevron.innerText = '▼ Read Directives';
+    }
+}
+</script>
 {% endblock %}

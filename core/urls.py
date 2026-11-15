@@ -39,9 +39,12 @@ urlpatterns = [
     # ── JSON API (for React Boardroom) ───────────────────────────────────
     path('api/signals/', api.api_signals, name='api_signals'),
     path('api/debate/<int:signal_id>/', api.api_debate, name='api_debate'),
+    path('api/debate/<int:signal_id>/regenerate/', api.api_debate_regenerate, name='api_debate_regenerate'),
     path('api/jev-check/', api.api_jev_check, name='api_jev_check'),
     path('api/trade/', api.api_trade, name='api_trade'),
     path('api/chat/', api.api_chat, name='api_chat'),
+    path('api/chat/<int:signal_id>/history/', api.api_chat_history, name='api_chat_history'),
+    path('api/chat/<int:signal_id>/clear/', api.api_chat_clear, name='api_chat_clear'),
     path('api/portfolio/', api.api_portfolio, name='api_portfolio'),
 ]
 

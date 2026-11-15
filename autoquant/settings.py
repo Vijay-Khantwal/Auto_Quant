@@ -3,8 +3,12 @@ Django settings for AutoQuant Boardroom.
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load .env file
+load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.environ.get(
     'DJANGO_SECRET_KEY',

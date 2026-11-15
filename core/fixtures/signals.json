@@ -2,9 +2,9 @@
   {
     "symbol": "IOLCP.NS",
     "company_name": "IOL Chemicals and Pharmaceuticals Ltd",
-    "sector": "Chemicals",
+    "sector": "Chemicals & Pharma",
     "price": 448.75,
-    "market_cap_usd": 80000000000,
+    "market_cap_usd": 26400000000,
     "ml_confidence": 87,
     "ml_reason": "Strong margin expansion with favorable raw material cycle; technical breakout above 200-DMA with rising volume.",
     "sparkline": [
@@ -15,11 +15,53 @@
     ]
   },
   {
+    "symbol": "TATAMOTORS.NS",
+    "company_name": "Tata Motors Ltd",
+    "sector": "Automobile & EV",
+    "price": 984.50,
+    "market_cap_usd": 362000000000,
+    "ml_confidence": 89,
+    "ml_reason": "JLR order book at record highs, domestic EV market share over 68%, robust free cash flow generation.",
+    "sparkline": [
+      910.0, 915.2, 922.5, 918.0, 930.4, 926.8, 938.0, 945.2, 940.1, 952.0,
+      948.5, 958.0, 954.2, 962.0, 960.5, 968.2, 965.0, 972.4, 970.1, 976.5,
+      972.0, 980.2, 977.5, 984.0, 981.2, 988.5, 982.0, 987.4, 982.1, 984.5
+    ]
+  },
+  {
+    "symbol": "ZOMATO.NS",
+    "company_name": "Zomato Ltd",
+    "sector": "Consumer Internet & Quick Commerce",
+    "price": 268.40,
+    "market_cap_usd": 235000000000,
+    "ml_confidence": 92,
+    "ml_reason": "Blinkit GOV doubling YoY with expanding contribution margin; food delivery profitability reaching steady state.",
+    "sparkline": [
+      230.5, 234.0, 232.1, 238.4, 236.0, 242.5, 240.2, 246.0, 244.5, 250.2,
+      248.0, 253.5, 251.0, 256.4, 254.0, 259.2, 257.5, 262.0, 260.4, 264.5,
+      262.1, 266.0, 264.2, 268.5, 266.0, 270.4, 267.5, 271.0, 266.8, 268.4
+    ]
+  },
+  {
+    "symbol": "RELIANCE.NS",
+    "company_name": "Reliance Industries Ltd",
+    "sector": "Energy, Telecom & Retail",
+    "price": 2985.00,
+    "market_cap_usd": 2015000000000,
+    "ml_confidence": 84,
+    "ml_reason": "ARPU hike in Jio flowing directly to EBITDA; retail expansion and new energy capex cycle peaking.",
+    "sparkline": [
+      2850.0, 2865.2, 2860.0, 2880.4, 2872.0, 2895.0, 2888.5, 2910.0, 2902.4, 2920.5,
+      2915.0, 2932.0, 2925.4, 2940.0, 2935.2, 2950.4, 2944.0, 2960.2, 2952.0, 2968.5,
+      2960.0, 2975.4, 2968.2, 2982.0, 2976.4, 2990.5, 2982.0, 2994.2, 2980.5, 2985.0
+    ]
+  },
+  {
     "symbol": "TCS.NS",
     "company_name": "Tata Consultancy Services Ltd",
     "sector": "Information Technology",
     "price": 3812.50,
-    "market_cap_usd": 1400000000000,
+    "market_cap_usd": 1390000000000,
     "ml_confidence": 74,
     "ml_reason": "Large deal pipeline acceleration; AI services revenue growing 35% QoQ. Consolidation pattern suggests upside breakout.",
     "sparkline": [
@@ -35,9 +77,9 @@
     "company_name": "HDFC Bank Ltd",
     "sector": "Banking & Financial Services",
     "price": 1648.30,
-    "market_cap_usd": 900000000000,
+    "market_cap_usd": 1280000000000,
     "ml_confidence": 82,
-    "ml_reason": "Post-merger integration ahead of schedule; NIM expansion visible in Q2 data. RSI reset from oversold territory.",
+    "ml_reason": "Post-merger integration ahead of schedule; NIM expansion visible in Q2 data. Credit deposit ratio improving.",
     "sparkline": [
       1580.00, 1588.50, 1595.20, 1590.80, 1602.40, 1598.10, 1610.30,
       1605.60, 1615.80, 1610.20, 1622.50, 1618.40, 1628.70, 1623.10,
@@ -47,49 +89,88 @@
     ]
   },
   {
-    "symbol": "PENNY.NS",
-    "company_name": "Penny Micro Industries Ltd",
-    "sector": "Miscellaneous",
-    "price": 11.85,
-    "market_cap_usd": 20000000,
-    "ml_confidence": 91,
-    "ml_reason": "Extreme undervaluation on DCF basis; recent promoter buying detected. Potential re-rating catalyst from subsidiary listing.",
+    "symbol": "INFY.NS",
+    "company_name": "Infosys Ltd",
+    "sector": "Information Technology",
+    "price": 1862.00,
+    "market_cap_usd": 765000000000,
+    "ml_confidence": 79,
+    "ml_reason": "Financial services discretionary spend recovering in North America; Topaz AI adoption expanding client wallet share.",
     "sparkline": [
-      9.20, 9.45, 9.80, 10.10, 9.75, 10.30, 10.55, 10.20, 10.80, 11.05,
-      10.70, 11.25, 10.90, 11.40, 11.10, 11.60, 11.30, 11.75, 11.45,
-      11.90, 11.55, 12.10, 11.80, 12.25, 11.95, 12.40, 12.05, 12.30,
-      12.00, 11.85
+      1780.0, 1792.0, 1788.5, 1805.0, 1798.2, 1812.0, 1806.4, 1822.0, 1815.0, 1830.4,
+      1824.0, 1838.5, 1832.0, 1845.0, 1840.2, 1852.0, 1846.5, 1858.0, 1851.2, 1864.0,
+      1858.0, 1868.5, 1861.0, 1872.4, 1865.0, 1876.0, 1868.2, 1874.0, 1860.5, 1862.0
+    ]
+  },
+  {
+    "symbol": "SUZLON.NS",
+    "company_name": "Suzlon Energy Ltd",
+    "sector": "Renewable Energy & Capital Goods",
+    "price": 68.20,
+    "market_cap_usd": 92000000000,
+    "ml_confidence": 85,
+    "ml_reason": "Net cash company post debt reduction; record 3.8 GW order book with high-margin 3MW wind turbine series.",
+    "sparkline": [
+      54.0, 55.5, 54.8, 57.2, 56.4, 58.8, 58.0, 60.5, 59.8, 62.0,
+      61.2, 63.5, 62.8, 64.6, 63.8, 65.5, 64.9, 66.8, 66.0, 67.5,
+      66.8, 68.4, 67.6, 69.2, 68.5, 70.0, 69.1, 70.4, 67.8, 68.2
+    ]
+  },
+  {
+    "symbol": "TATASTEEL.NS",
+    "company_name": "Tata Steel Ltd",
+    "sector": "Metals & Mining",
+    "price": 152.80,
+    "market_cap_usd": 189000000000,
+    "ml_confidence": 71,
+    "ml_reason": "Domestic auto and infra demand offsetting EU restructuring costs; blast furnace relining complete at Kalinganagar.",
+    "sparkline": [
+      142.0, 143.5, 142.8, 145.0, 144.2, 146.5, 145.8, 148.0, 147.2, 149.0,
+      148.4, 150.5, 149.8, 151.2, 150.5, 152.4, 151.6, 153.5, 152.8, 154.2,
+      153.5, 155.0, 154.2, 155.8, 154.9, 156.4, 155.2, 156.0, 151.5, 152.8
+    ]
+  },
+  {
+    "symbol": "PENNY.NS",
+    "company_name": "Bharat MicroPenny Ventures Ltd",
+    "sector": "Financial Speculation",
+    "price": 12.40,
+    "market_cap_usd": 150000000,
+    "ml_confidence": 91,
+    "ml_reason": "Pump-and-dump momentum signal with artificial volume spike; extreme liquidity risk.",
+    "sparkline": [
+      8.20, 8.45, 8.10, 8.90, 8.60, 9.30, 9.00, 9.80, 9.50, 10.20,
+      9.90, 10.65, 10.30, 11.10, 10.75, 11.50, 11.15, 11.90, 11.55, 12.30,
+      11.95, 12.70, 12.35, 13.10, 12.75, 13.50, 13.10, 13.80, 12.90, 12.40
     ]
   },
   {
     "symbol": "HIGHPRICE.NS",
-    "company_name": "MRF Ltd",
-    "sector": "Automobiles - Tyres",
+    "company_name": "Apex Heavy Tyres India Ltd",
+    "sector": "Automotive Tyres (High Nominal)",
     "price": 48250.00,
-    "market_cap_usd": 200000000000,
+    "market_cap_usd": 203000000000,
     "ml_confidence": 78,
-    "ml_reason": "Premium brand pricing power intact; rural demand recovery underway. Relative strength improving vs. Nifty Auto index.",
+    "ml_reason": "Dominant market share in specialized heavy mining tyres; steady compounding growth.",
     "sparkline": [
-      46800.00, 46950.50, 47120.30, 46980.80, 47250.60, 47100.20,
-      47380.40, 47220.10, 47500.80, 47350.30, 47620.50, 47480.70,
-      47750.20, 47600.40, 47880.60, 47720.30, 47950.80, 47800.50,
-      48080.20, 47920.60, 48150.40, 48000.80, 48280.30, 48120.50,
-      48350.70, 48200.40, 48420.60, 48300.20, 48380.50, 48250.00
+      46200.0, 46450.0, 46300.0, 46700.0, 46550.0, 47000.0, 46850.0, 47300.0,
+      47150.0, 47500.0, 47350.0, 47700.0, 47550.0, 47900.0, 47750.0, 48100.0,
+      47950.0, 48300.0, 48150.0, 48500.0, 48350.0, 48700.0, 48550.0, 48900.0,
+      48750.0, 49100.0, 48950.0, 49200.0, 48400.0, 48250.0
     ]
   },
   {
     "symbol": "LOWCONF.NS",
-    "company_name": "Suzlon Energy Ltd",
-    "sector": "Renewable Energy",
-    "price": 278.40,
-    "market_cap_usd": 150000000000,
+    "company_name": "Struggling Infrastructure Projects Ltd",
+    "sector": "Construction & Real Estate",
+    "price": 280.50,
+    "market_cap_usd": 85000000000,
     "ml_confidence": 42,
-    "ml_reason": "Mixed signals — order book growing but execution delays persist. Model uncertainty high due to policy dependency.",
+    "ml_reason": "High debt overhang; weak quarterly cash flows with negative operational momentum.",
     "sparkline": [
-      295.60, 292.30, 288.50, 291.80, 285.40, 289.10, 283.70, 287.20,
-      281.50, 285.80, 279.40, 283.60, 277.80, 282.10, 276.30, 280.50,
-      274.80, 279.20, 273.60, 278.40, 272.80, 277.50, 274.20, 279.80,
-      275.60, 280.30, 276.40, 281.20, 277.80, 278.40
+      310.0, 308.2, 305.5, 307.0, 303.4, 301.0, 302.5, 298.0, 299.4, 295.0,
+      296.2, 292.0, 293.5, 289.0, 290.4, 286.0, 287.2, 283.0, 284.5, 281.0,
+      282.4, 278.0, 279.5, 276.0, 277.2, 274.0, 275.5, 272.0, 279.0, 280.5
     ]
   }
 ]

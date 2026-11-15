@@ -34,7 +34,8 @@ function EmptyState() {
 
 export default function BoardroomTable({
   signal, debate, jevResult, loadingDebate, debateFinished,
-  quantity, onQuantityChange, onDebateFinished, onExecute, onPass, lessonCard
+  quantity, onQuantityChange, onDebateFinished, onExecute, onPass, lessonCard,
+  onRegenerateDebate
 }) {
   const turns = debate?.debate?.turns || [];
   const debateData = debate?.debate || {};
@@ -51,14 +52,37 @@ export default function BoardroomTable({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-mono text-xl font-bold text-gold">{signal.symbol}</h2>
-          <p className="text-sm text-muted">{signal.company_name}</p>
+          <div className="flex items-center gap-2">
+            <h2 className="font-mono text-xl font-bold text-gold">{signal.symbol}</h2>
+            {signal.market_cap_display && (
+              <span className="text-xs font-mono text-muted px-2 py-0.5 rounded bg-white/5 border border-white/10">
+                {signal.market_cap_display}
+              </span>
+            )}
+            {debateData.source === 'llm' && (
+              <span className="text-[10px] font-mono text-value px-2 py-0.5 rounded-full bg-value/10 border border-value/30">
+                ⚡ Live AI (Azure)
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-muted">{signal.company_name} · {signal.sector}</p>
         </div>
-        {debateData.skill_name && (
-          <span className="px-3 py-1 text-xs font-medium rounded-full bg-gold/10 text-gold border border-gold/20">
-            Agents tuned by: {debateData.skill_name}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {debateData.skill_name && (
+            <span className="px-3 py-1 text-xs font-medium rounded-full bg-gold/10 text-gold border border-gold/20">
+              Tuned by: {debateData.skill_name}
+            </span>
+          )}
+          {onRegenerateDebate && (
+            <button
+              onClick={onRegenerateDebate}
+              className="px-3 py-1 text-xs font-medium rounded-full bg-white/5 border border-white/10 hover:border-gold/40 hover:bg-gold/10 text-gold transition"
+              title="Regenerate dynamic debate using Azure OpenAI"
+            >
+              ✨ Re-Debate (AI)
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Agent Seats */}

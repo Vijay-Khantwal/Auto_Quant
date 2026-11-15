@@ -51,8 +51,13 @@ export default function SignalCard({ signal, isSelected, onClick }) {
             <span className="text-xs text-muted truncate">{signal.sector}</span>
           </div>
           <div className="text-xs text-muted truncate mb-2">{signal.company_name}</div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <span className="font-mono font-medium">₹{Number(signal.price).toLocaleString()}</span>
+            {signal.market_cap_display && (
+              <span className="text-[11px] font-mono text-gold/80 px-1.5 py-0.5 rounded bg-white/5 border border-white/10">
+                {signal.market_cap_display}
+              </span>
+            )}
             {sparkData.length > 2 && (
               <div className="w-16 h-6">
                 <ResponsiveContainer width="100%" height="100%">
