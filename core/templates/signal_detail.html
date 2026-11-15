@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ signal.symbol }} — AutoQuant{% endblock %}
+
+{% block content %}
+<div class="page-container" style="max-width:700px;">
+    <div class="glass-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <div>
+                <h2 class="mono" style="color:var(--gold);">{{ signal.symbol }}</h2>
+                <p class="text-muted">{{ signal.company_name }} · {{ signal.sector }}</p>
+            </div>
+            <div style="text-align:right;">
+                <div class="mono" style="font-size:1.5rem;">₹{{ signal.price|floatformat:2 }}</div>
+                <div class="pill pill-value" style="margin-top:0.3rem;">
+                    ML Confidence: {{ signal.ml_confidence }}%
+                </div>
+            </div>
+        </div>
+
+        <p style="margin-bottom:1rem;">{{ signal.ml_reason }}</p>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+            <div>
+                <span class="text-muted" style="font-size:0.8rem;">Market Cap</span><br>
+                <span class="mono">${{ signal.market_cap_usd|floatformat:0 }}</span>
+            </div>
+            <div>
+                <span class="text-muted" style="font-size:0.8rem;">Sector</span><br>
+                {{ signal.sector }}
+            </div>
+        </div>
+
+        <a href="{% url 'boardroom' %}" class="btn btn-primary">Debate in Boardroom →</a>
+    </div>
+</div>
+{% endblock %}

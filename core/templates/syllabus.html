@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Syllabus Map — AutoQuant{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <h2 style="margin-bottom:0.5rem;">📋 Syllabus Coverage Map</h2>
+    <p class="text-muted" style="margin-bottom:1.5rem;">
+        Every Django concept from the syllabus and exactly where it appears in AutoQuant Boardroom.
+    </p>
+
+    <div class="glass-card" style="padding:0; overflow:auto;">
+        <table class="data-table syllabus-table">
+            <thead>
+                <tr>
+                    <th>Unit</th>
+                    <th>Concept</th>
+                    <th>Where in AutoQuant</th>
+                    <th>File</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>II</td>
+                    <td>Views and URL mapping</td>
+                    <td>All page and API views</td>
+                    <td><code>core/views.py</code>, <code>core/api.py</code>, <code>core/urls.py</code></td>
+                </tr>
+                <tr>
+                    <td>II</td>
+                    <td>URL parameters</td>
+                    <td><code>/signal/&lt;int:signal_id&gt;/</code> and <code>/api/debate/&lt;int:signal_id&gt;/</code></td>
+                    <td><code>core/urls.py</code></td>
+                </tr>
+                <tr>
+                    <td>II</td>
+                    <td>Regex in URLs (one use)</td>
+                    <td><code>re_path(r'^ticker/(?P&lt;symbol&gt;[A-Z0-9]+\.[A-Z]{2})/$')</code> matches NSE tickers like IOLCP.NS</td>
+                    <td><code>core/urls.py:35</code></td>
+                </tr>
+                <tr>
+                    <td>II</td>
+                    <td>Error handling</td>
+                    <td>Custom <code>404.html</code> and <code>500.html</code>; JSON errors from API</td>
+                    <td><code>core/views.py</code>, <code>core/api.py</code>, templates</td>
+                </tr>
+                <tr>
+                    <td>III</td>
+                    <td>Templates, DTL, tags, variables, for/if</td>
+                    <td>Landing, history, skills, settings, syllabus pages</td>
+                    <td><code>core/templates/*.html</code></td>
+                </tr>
+                <tr>
+                    <td>III</td>
+                    <td>Template inheritance</td>
+                    <td><code>base.html</code> with <code>{% templatetag openblock %} block content {% templatetag closeblock %}</code>; all pages extend it</td>
+                    <td><code>core/templates/base.html</code></td>
+                </tr>
+                <tr>
+                    <td>III</td>
+                    <td>Debugging</td>
+                    <td><code>DEBUG=True</code>, <code>logging</code> config, <code>logger.info</code> in Jev</td>
+                    <td><code>autoquant/settings.py</code>, <code>core/jev.py</code></td>
+                </tr>
+                <tr>
+                    <td>III</td>
+                    <td>Testing</td>
+                    <td>14+ tests covering Jev, Trade API, auth, forms, regex URL, chat router</td>
+                    <td><code>core/tests.py</code></td>
+                </tr>
+                <tr>
+                    <td>IV</td>
+                    <td>Forms, GET/POST, validation</td>
+                    <td>RiskSettingsForm, SkillUploadForm, SignupForm, TradeFilterForm (GET)</td>
+                    <td><code>core/forms.py</code></td>
+                </tr>
+                <tr>
+                    <td>IV</td>
+                    <td>CSRF</td>
+                    <td><code>{% templatetag openblock %} csrf_token {% templatetag closeblock %}</code> in all forms; React reads <code>csrftoken</code> cookie and sends <code>X-CSRFToken</code> header</td>
+                    <td><code>core/templates/*.html</code>, <code>frontend/src/api.js</code></td>
+                </tr>
+                <tr>
+                    <td>IV</td>
+                    <td>POST-redirect-GET</td>
+                    <td>After saving settings, uploading a skill, or signup — redirects with <code>messages</code> flash</td>
+                    <td><code>core/views.py</code></td>
+                </tr>
+                <tr>
+                    <td>V</td>
+                    <td>Models, migrations, ORM, FKs</td>
+                    <td>8 models with relationships: RiskSettings, Portfolio, Holding, SkillProfile, StockSignal, Debate, DebateTurn, Trade</td>
+                    <td><code>core/models.py</code></td>
+                </tr>
+                <tr>
+                    <td>V</td>
+                    <td>Django shell</td>
+                    <td>README section "Explore with the Shell" with 5 ORM commands</td>
+                    <td><code>README.md</code></td>
+                </tr>
+                <tr>
+                    <td>V</td>
+                    <td>Admin, groups, users, permissions</td>
+                    <td>All models registered; Analyst group with <code>can_view_audit_log</code>; demo user added to Analyst</td>
+                    <td><code>core/admin.py</code>, <code>core/management/commands/seed_demo.py</code></td>
+                </tr>
+                <tr>
+                    <td>V</td>
+                    <td>Database configuration</td>
+                    <td>Explicit <code>DATABASES</code> block with SQLite and comments</td>
+                    <td><code>autoquant/settings.py</code></td>
+                </tr>
+                <tr>
+                    <td>VI</td>
+                    <td>Session (one use)</td>
+                    <td><code>request.session['last_signal_id']</code> remembers the last debate viewed; landing shows "Resume last debate"</td>
+                    <td><code>core/views.py</code> — <code>signal_detail</code> and <code>home</code></td>
+                </tr>
+                <tr>
+                    <td>VI</td>
+                    <td>Cookie (one use)</td>
+                    <td><code>aq_onboarded</code> cookie set after first Boardroom visit; hides the intro tooltip tour</td>
+                    <td><code>core/views.py</code> — <code>boardroom</code></td>
+                </tr>
+                <tr>
+                    <td>VI</td>
+                    <td>Users, login/logout, login_required</td>
+                    <td>Built-in <code>LoginView</code>/<code>LogoutView</code>, <code>@login_required</code> on all app pages</td>
+                    <td><code>core/urls.py</code>, <code>core/views.py</code></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

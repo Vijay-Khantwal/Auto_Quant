@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Trade History — AutoQuant{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <h2 style="margin-bottom:1.5rem;">📜 Trade History</h2>
+
+    {# ── Filter Form (GET, Syllabus Unit IV) ── #}
+    <div class="glass-card" style="margin-bottom:1.5rem; padding:1rem 1.25rem;">
+        <form method="get" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap;">
+            <div class="form-group" style="margin-bottom:0;">
+                <label>Decision</label>
+                {{ form.decision }}
+            </div>
+            <div class="form-group" style="margin-bottom:0; flex:1; min-width:200px;">
+                <label>Symbol</label>
+                {{ form.symbol }}
+            </div>
+            <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+        </form>
+    </div>
+
+    {# ── Trade Table ── #}
+    {% if trades %}
+        <div class="glass-card" style="padding:0; overflow:auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Symbol</th>
+                        <th>Decision</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Jev</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trade in trades %}
+                        <tr>
+                            <td>{{ trade.created_at|date:"d M Y, H:i" }}</td>
+                            <td>
+                                <span class="mono">{{ trade.signal.symbol }}</span>
+                            </td>
+                            <td>
+                                {% if trade.decision == "execute" %}
+                                    <span class="pill pill-value">Execute</span>
+                                {% else %}
+                                    <span class="pill" style="background:rgba(139,147,167,0.15); color:var(--muted);">Pass</span>
+                                {% endif %}
+                            </td>
+                            <td class="mono">{{ trade.quantity }}</td>
+                            <td class="mono">₹{{ trade.price|floatformat:2 }}</td>
+                            <td>
+                                {% if trade.jev_approved %}
+                                    <span style="color:var(--value);">✓</span>
+                                {% else %}
+                                    <span style="color:var(--risk);">✗</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="glass-card" style="text-align:center;">
+            <p class="text-muted">No trades found. Head to the <a href="{% url 'boardroom' %}" style="color:var(--gold);">Boardroom</a> to start trading.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

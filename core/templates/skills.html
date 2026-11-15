@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Skills — AutoQuant{% endblock %}
+
+{% block content %}
+<div class="page-container" style="max-width:700px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <h2>🎯 Skill Profiles</h2>
+        <a href="{% url 'skill_download_example' %}" class="btn btn-ghost btn-sm">
+            ↓ Download example skill file
+        </a>
+    </div>
+    <p class="text-muted" style="margin-bottom:1.5rem;">
+        Upload a <code>.md</code> or <code>.yaml</code> file to tune the AI agents' personality.
+        The active skill shapes how agents argue in the boardroom.
+    </p>
+
+    {# ── Existing Skills ── #}
+    {% for skill in skills %}
+        <div class="skill-card {% if skill.is_active %}active{% endif %}">
+            <div>
+                <div class="skill-name">
+                    {{ skill.name }}
+                    {% if skill.is_active %}
+                        <span class="pill pill-gold" style="margin-left:0.5rem;">Active</span>
+                    {% endif %}
+                </div>
+                <div class="skill-meta">
+                    {{ skill.parsed.style|default:"—" }} · {{ skill.parsed.risk_tolerance|default:"—" }} risk
+                    · {{ skill.created_at|date:"d M Y" }}
+                </div>
+            </div>
+            <div class="skill-actions">
+                {% if not skill.is_active %}
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="activate">
+                        <input type="hidden" name="skill_id" value="{{ skill.id }}">
+                        <button type="submit" class="btn btn-secondary btn-sm">Activate</button>
+                    </form>
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="skill_id" value="{{ skill.id }}">
+                        <button type="submit" class="btn btn-danger btn-sm"
+                                onclick="return confirm('Delete this skill?')">Delete</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    {% empty %}
+        <p class="text-muted">No skills uploaded yet.</p>
+    {% endfor %}
+
+    {# ── Upload Form ── #}
+    <div class="glass-card" style="margin-top:2rem;">
+        <h3 style="margin-bottom:1rem;">Upload New Skill</h3>
+        {% if form.errors %}
+            <div class="form-errors">
+                <ul>
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload">
+            <div class="form-group">
+                <label>Skill File (.md, .yaml, .yml — max 20 KB)</label>
+                {{ form.file }}
+            </div>
+            <button type="submit" class="btn btn-primary">Upload Skill</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

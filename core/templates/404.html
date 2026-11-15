@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Page Not Found — AutoQuant{% endblock %}
+
+{% block content %}
+<div class="page-container" style="text-align:center; padding-top:6rem;">
+    <h1 style="font-size:5rem; color:var(--gold); margin-bottom:0.5rem;">404</h1>
+    <p style="font-size:1.2rem; margin-bottom:2rem;">This page doesn't exist in our universe.</p>
+    <a href="{% url 'home' %}" class="btn btn-primary">Go Home</a>
+</div>
+{% endblock %}

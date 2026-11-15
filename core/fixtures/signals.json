@@ -1,0 +1,95 @@
+[
+  {
+    "symbol": "IOLCP.NS",
+    "company_name": "IOL Chemicals and Pharmaceuticals Ltd",
+    "sector": "Chemicals",
+    "price": 448.75,
+    "market_cap_usd": 80000000000,
+    "ml_confidence": 87,
+    "ml_reason": "Strong margin expansion with favorable raw material cycle; technical breakout above 200-DMA with rising volume.",
+    "sparkline": [
+      412.30, 418.55, 415.20, 422.80, 419.60, 425.10, 421.75, 428.40,
+      430.15, 426.90, 433.50, 436.20, 431.80, 438.65, 435.10, 440.25,
+      437.90, 442.50, 439.80, 445.30, 441.60, 447.20, 443.85, 449.10,
+      446.50, 451.30, 448.20, 453.60, 450.40, 448.75
+    ]
+  },
+  {
+    "symbol": "TCS.NS",
+    "company_name": "Tata Consultancy Services Ltd",
+    "sector": "Information Technology",
+    "price": 3812.50,
+    "market_cap_usd": 1400000000000,
+    "ml_confidence": 74,
+    "ml_reason": "Large deal pipeline acceleration; AI services revenue growing 35% QoQ. Consolidation pattern suggests upside breakout.",
+    "sparkline": [
+      3680.00, 3695.40, 3710.25, 3698.80, 3725.60, 3715.30, 3740.10,
+      3728.50, 3752.80, 3745.20, 3760.40, 3748.90, 3772.30, 3765.10,
+      3780.50, 3770.20, 3795.80, 3788.40, 3802.60, 3790.30, 3810.50,
+      3798.70, 3815.20, 3805.40, 3822.80, 3810.60, 3830.10, 3818.40,
+      3825.70, 3812.50
+    ]
+  },
+  {
+    "symbol": "HDFCBANK.NS",
+    "company_name": "HDFC Bank Ltd",
+    "sector": "Banking & Financial Services",
+    "price": 1648.30,
+    "market_cap_usd": 900000000000,
+    "ml_confidence": 82,
+    "ml_reason": "Post-merger integration ahead of schedule; NIM expansion visible in Q2 data. RSI reset from oversold territory.",
+    "sparkline": [
+      1580.00, 1588.50, 1595.20, 1590.80, 1602.40, 1598.10, 1610.30,
+      1605.60, 1615.80, 1610.20, 1622.50, 1618.40, 1628.70, 1623.10,
+      1632.80, 1627.50, 1638.20, 1633.60, 1642.80, 1637.40, 1645.10,
+      1640.80, 1650.20, 1644.30, 1652.60, 1647.80, 1655.40, 1650.10,
+      1653.80, 1648.30
+    ]
+  },
+  {
+    "symbol": "PENNY.NS",
+    "company_name": "Penny Micro Industries Ltd",
+    "sector": "Miscellaneous",
+    "price": 11.85,
+    "market_cap_usd": 20000000,
+    "ml_confidence": 91,
+    "ml_reason": "Extreme undervaluation on DCF basis; recent promoter buying detected. Potential re-rating catalyst from subsidiary listing.",
+    "sparkline": [
+      9.20, 9.45, 9.80, 10.10, 9.75, 10.30, 10.55, 10.20, 10.80, 11.05,
+      10.70, 11.25, 10.90, 11.40, 11.10, 11.60, 11.30, 11.75, 11.45,
+      11.90, 11.55, 12.10, 11.80, 12.25, 11.95, 12.40, 12.05, 12.30,
+      12.00, 11.85
+    ]
+  },
+  {
+    "symbol": "HIGHPRICE.NS",
+    "company_name": "MRF Ltd",
+    "sector": "Automobiles - Tyres",
+    "price": 48250.00,
+    "market_cap_usd": 200000000000,
+    "ml_confidence": 78,
+    "ml_reason": "Premium brand pricing power intact; rural demand recovery underway. Relative strength improving vs. Nifty Auto index.",
+    "sparkline": [
+      46800.00, 46950.50, 47120.30, 46980.80, 47250.60, 47100.20,
+      47380.40, 47220.10, 47500.80, 47350.30, 47620.50, 47480.70,
+      47750.20, 47600.40, 47880.60, 47720.30, 47950.80, 47800.50,
+      48080.20, 47920.60, 48150.40, 48000.80, 48280.30, 48120.50,
+      48350.70, 48200.40, 48420.60, 48300.20, 48380.50, 48250.00
+    ]
+  },
+  {
+    "symbol": "LOWCONF.NS",
+    "company_name": "Suzlon Energy Ltd",
+    "sector": "Renewable Energy",
+    "price": 278.40,
+    "market_cap_usd": 150000000000,
+    "ml_confidence": 42,
+    "ml_reason": "Mixed signals — order book growing but execution delays persist. Model uncertainty high due to policy dependency.",
+    "sparkline": [
+      295.60, 292.30, 288.50, 291.80, 285.40, 289.10, 283.70, 287.20,
+      281.50, 285.80, 279.40, 283.60, 277.80, 282.10, 276.30, 280.50,
+      274.80, 279.20, 273.60, 278.40, 272.80, 277.50, 274.20, 279.80,
+      275.60, 280.30, 276.40, 281.20, 277.80, 278.40
+    ]
+  }
+]

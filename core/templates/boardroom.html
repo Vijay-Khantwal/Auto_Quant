@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Boardroom — AutoQuant{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'boardroom/boardroom.css' %}">
+{% endblock %}
+
+{% block content %}
+    {{ bootstrap|json_script:"bootstrap-data" }}
+    <div id="root"></div>
+{% endblock %}
+
+{% block footer %}{% endblock %}
+
+{% block extra_scripts %}
+    <script src="{% static 'boardroom/boardroom.js' %}"></script>
+{% endblock %}

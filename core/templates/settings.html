@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Risk Settings — AutoQuant{% endblock %}
+
+{% block content %}
+<div class="page-container" style="max-width:600px;">
+    <h2 style="margin-bottom:1.5rem;">⚙ Risk Settings</h2>
+    <p class="text-muted" style="margin-bottom:1.5rem;">
+        These parameters are enforced by Jev on every trade. Adjust them to match your risk appetite.
+    </p>
+
+    <div class="glass-card">
+        {% if form.errors %}
+            <div class="form-errors">
+                <ul>
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="{{ form.max_position_pct.id_for_label }}">
+                    Max Position Size (% of portfolio)
+                </label>
+                {{ form.max_position_pct }}
+                <small class="text-muted">0.5% to 25%</small>
+            </div>
+            <div class="form-group">
+                <label for="{{ form.min_market_cap_usd.id_for_label }}">
+                    Min Market Cap (USD)
+                </label>
+                {{ form.min_market_cap_usd }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.max_trades_per_day.id_for_label }}">
+                    Max Trades per Day
+                </label>
+                {{ form.max_trades_per_day }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.min_ml_confidence.id_for_label }}">
+                    Min ML Confidence (0–100)
+                </label>
+                {{ form.min_ml_confidence }}
+            </div>
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

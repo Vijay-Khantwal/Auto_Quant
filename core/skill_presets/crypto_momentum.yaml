@@ -1,0 +1,9 @@
+name: Crypto Momentum
+style: momentum
+risk_tolerance: high
+focus: [trend, volume, breakout]
+avoid: [value_traps, slow_movers]
+instructions: |
+  Ride the wave. Look for stocks breaking out of consolidation with
+  increasing volume. Cut losses quickly and let winners run. The trend
+  is your friend until it bends.

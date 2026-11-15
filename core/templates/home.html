@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}AutoQuant Boardroom{% endblock %}
+
+{% block content %}
+{% if user.is_authenticated %}
+    {# ── Logged-in Dashboard ── #}
+    <div class="page-container">
+        <h1>Welcome back, {{ user.username }}</h1>
+        <div class="dashboard-grid">
+            <div class="glass-card stat-card">
+                <div class="stat-value">₹{{ portfolio.cash|floatformat:0 }}</div>
+                <div class="stat-label">Available Cash</div>
+            </div>
+            <div class="glass-card stat-card">
+                <div class="stat-value">₹{{ portfolio.total_value|floatformat:0 }}</div>
+                <div class="stat-label">Portfolio Value</div>
+            </div>
+            <div class="glass-card stat-card">
+                <div class="stat-value">{{ portfolio.holdings.count }}</div>
+                <div class="stat-label">Holdings</div>
+            </div>
+        </div>
+
+        <div style="margin-top:2rem; display:flex; gap:1rem; flex-wrap:wrap;">
+            <a href="{% url 'boardroom' %}" class="btn btn-primary">Enter Boardroom</a>
+            {% if last_signal %}
+                <a href="{% url 'boardroom' %}" class="btn btn-secondary">
+                    Resume: {{ last_signal.symbol }}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    {# ── Anonymous Landing ── #}
+    <div class="hero">
+        <h1>AI Agents Debate.<br>You Decide.</h1>
+        <p>Watch two AI analysts argue a stock's case, while a deterministic compliance officer guards your risk. Cast the final vote: Execute or Pass.</p>
+        <div class="hero-buttons">
+            <a href="{% url 'signup' %}" class="btn btn-primary">Get Started</a>
+            <a href="{% url 'login' %}" class="btn btn-secondary">Log In</a>
+        </div>
+
+        {# ── CSS-only agent bubble preview ── #}
+        <div class="agent-preview">
+            <div class="agent-bubble value-bubble">
+                <div class="bubble-header text-value">⬆ Value Agent</div>
+                "P/E of 11.2 vs sector average of 19 — that's a 41% discount. With margins expanding 20%, this is a textbook value play."
+            </div>
+            <div class="agent-bubble risk-bubble">
+                <div class="bubble-header text-risk">⬇ Risk Agent</div>
+                "The CEO just sold 10% of their holdings. When insiders are selling, retail shouldn't be buying."
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

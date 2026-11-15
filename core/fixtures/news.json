@@ -1,0 +1,100 @@
+{
+  "IOLCP.NS": [
+    {
+      "headline": "IOL Chemicals secures multi-year Ibuprofen supply contract with top European pharma major",
+      "sentiment": "positive"
+    },
+    {
+      "headline": "DGTR initiates anti-dumping investigation on Chinese chemical imports — IOL among petitioners",
+      "sentiment": "neutral"
+    },
+    {
+      "headline": "IOL Chemicals CEO completes pre-announced share sale plan; retains 38% promoter stake",
+      "sentiment": "negative"
+    }
+  ],
+  "TCS.NS": [
+    {
+      "headline": "TCS wins $2.1B digital transformation deal with major US healthcare provider",
+      "sentiment": "positive"
+    },
+    {
+      "headline": "IT sector faces headwinds as US enterprises defer discretionary tech spending to 2027",
+      "sentiment": "negative"
+    },
+    {
+      "headline": "TCS recognized as a Leader in Gartner Magic Quadrant for AI Engineering Services",
+      "sentiment": "positive"
+    }
+  ],
+  "HDFCBANK.NS": [
+    {
+      "headline": "HDFC Bank's post-merger CASA ratio crosses 39% — fastest recovery among merged bank entities",
+      "sentiment": "positive"
+    },
+    {
+      "headline": "RBI rate cut expectations grow — analysts debate NIM impact on banking sector",
+      "sentiment": "neutral"
+    },
+    {
+      "headline": "HDFC Bank launches AI-powered wealth management platform targeting HNI segment",
+      "sentiment": "positive"
+    }
+  ],
+  "PENNY.NS": [
+    {
+      "headline": "SEBI tightens surveillance on micro-cap stocks; Penny Micro added to ASM framework",
+      "sentiment": "negative"
+    },
+    {
+      "headline": "Penny Micro Industries promoter increases stake via preferential allotment — minority shareholders concerned",
+      "sentiment": "negative"
+    },
+    {
+      "headline": "Small-cap rally loses steam as institutional investors rotate into large caps",
+      "sentiment": "neutral"
+    }
+  ],
+  "HIGHPRICE.NS": [
+    {
+      "headline": "MRF launches India's first dedicated EV tyre line — targets 15% market share by FY28",
+      "sentiment": "positive"
+    },
+    {
+      "headline": "Natural rubber prices drop to 18-month low — positive for tyre manufacturers' margins",
+      "sentiment": "positive"
+    },
+    {
+      "headline": "MRF faces increased competition as Apollo and CEAT expand premium tyre portfolios",
+      "sentiment": "negative"
+    }
+  ],
+  "LOWCONF.NS": [
+    {
+      "headline": "Suzlon Energy bags 504 MW wind energy order from leading industrial conglomerate",
+      "sentiment": "positive"
+    },
+    {
+      "headline": "Government delays finalization of wind RPO targets — renewable energy stocks under pressure",
+      "sentiment": "negative"
+    },
+    {
+      "headline": "Suzlon acknowledges project execution delays; pushes ₹480 Cr revenue to Q3",
+      "sentiment": "negative"
+    }
+  ],
+  "_default": [
+    {
+      "headline": "Markets trade in narrow range amid mixed global cues and FII outflows",
+      "sentiment": "neutral"
+    },
+    {
+      "headline": "Sector rotation continues as investors reassess valuations ahead of earnings season",
+      "sentiment": "neutral"
+    },
+    {
+      "headline": "Domestic institutional investors maintain steady buying — mutual fund SIP flows hit record highs",
+      "sentiment": "positive"
+    }
+  ]
+}

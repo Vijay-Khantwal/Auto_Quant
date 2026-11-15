@@ -1,0 +1,78 @@
+{
+  "IOLCP.NS": {
+    "title": "IOL Chemicals — Q2 FY27 Quarterly Results & Investor Presentation",
+    "date": "2026-10-28",
+    "bullets": [
+      "Revenue grew 18.4% YoY to ₹892 Cr; EBITDA margin expanded 320 bps to 21.2%",
+      "Ibuprofen API capacity expanded to 10,000 TPA — largest single-site facility globally",
+      "Board approved ₹250 Cr capex for backward integration into acetic anhydride",
+      "Export revenue now 38% of total, up from 29% in prior year quarter",
+      "Management guided for 22-24% EBITDA margin range for FY27E"
+    ]
+  },
+  "TCS.NS": {
+    "title": "TCS — Q2 FY27 Earnings Release & Analyst Call Transcript",
+    "date": "2026-10-11",
+    "bullets": [
+      "Revenue of $7.84B, up 7.2% YoY in constant currency; sequential growth of 1.8%",
+      "Total Contract Value (TCV) at record $12.2B; book-to-bill ratio of 1.56x",
+      "GenAI practice signed 85 engagements worth $900M cumulative in 9 months",
+      "Operating margin at 26.2%; free cash flow conversion at 108% of net income",
+      "Attrition at 13.2% — management expects stabilization at 12% by Q4"
+    ]
+  },
+  "HDFCBANK.NS": {
+    "title": "HDFC Bank — Q2 FY27 Results & Post-Merger Integration Update",
+    "date": "2026-10-19",
+    "bullets": [
+      "Net interest income grew 24.3% YoY to ₹31,420 Cr; NIM at 3.65%, up 12 bps QoQ",
+      "Branch consolidation 78% complete — on track for full integration by Q1 FY28",
+      "CASA ratio recovering: 39.2% vs 37.8% in prior quarter; added 2.8M savings accounts",
+      "Gross NPA at 1.34% (blended); legacy HDFC Ltd mortgage book at 2.1% — cleanup provisioned",
+      "Board approved ₹12,000 Cr Tier-2 bond issuance to optimize capital structure"
+    ]
+  },
+  "PENNY.NS": {
+    "title": "Penny Micro Industries — Annual Report FY26 Filing",
+    "date": "2026-09-30",
+    "bullets": [
+      "Revenue declined 12% YoY to ₹48 Cr; net loss of ₹8.2 Cr vs profit of ₹1.1 Cr prior year",
+      "Auditor flagged going concern qualification due to negative operating cash flow for 3 consecutive years",
+      "Promoter holding increased from 62% to 68% via preferential allotment — dilutive to minorities",
+      "Single manufacturing facility with no disaster recovery or alternative site",
+      "Related party transactions with promoter-linked entities increased 45% YoY"
+    ]
+  },
+  "HIGHPRICE.NS": {
+    "title": "MRF Ltd — Q2 FY27 Results & Investor Presentation",
+    "date": "2026-11-05",
+    "bullets": [
+      "Revenue grew 11.8% YoY to ₹6,280 Cr driven by volume growth and premium mix improvement",
+      "EBITDA margin at 18.5% — benefiting from benign natural rubber prices and operational leverage",
+      "Launched 12 new SKUs in the SUV and EV tyre segment; EV-specific revenue doubled YoY",
+      "Capex of ₹1,200 Cr planned for new radial tyre plant in Gujarat — commissioning by FY28",
+      "Declared interim dividend of ₹3 per share; maintained consistent dividend track record"
+    ]
+  },
+  "LOWCONF.NS": {
+    "title": "Suzlon Energy — Q2 FY27 Business Update & Order Pipeline",
+    "date": "2026-10-22",
+    "bullets": [
+      "Revenue of ₹2,180 Cr, up 32% YoY; however, execution delays pushed ₹480 Cr to next quarter",
+      "Order book at ₹18,400 Cr — highest ever, but conversion to revenue remains key risk",
+      "Debt restructuring complete: net debt reduced to ₹1,200 Cr from ₹4,800 Cr in FY24",
+      "Government policy on wind energy RPO targets still pending finalization — creates uncertainty",
+      "Announced partnership with European turbine maker for 4.x MW platform; commercial production FY28"
+    ]
+  },
+  "_default": {
+    "title": "Latest Quarterly Filing — Regulatory Submission",
+    "date": "2026-10-15",
+    "bullets": [
+      "Financial results filed with stock exchanges as per SEBI LODR requirements",
+      "Revenue and profitability in line with street estimates for the quarter",
+      "No material related party transactions flagged by the audit committee",
+      "Board composition compliant with corporate governance norms"
+    ]
+  }
+}

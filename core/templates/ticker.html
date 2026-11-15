@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ signal.symbol|default:symbol }} — AutoQuant{% endblock %}
+
+{% block content %}
+<div class="page-container" style="max-width:700px;">
+    {% if signal %}
+        <div class="glass-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <div>
+                    <h2 class="mono" style="color:var(--gold);">{{ signal.symbol }}</h2>
+                    <p class="text-muted">{{ signal.company_name }} · {{ signal.sector }}</p>
+                </div>
+                <div style="text-align:right;">
+                    <div class="mono" style="font-size:1.5rem;">₹{{ signal.price|floatformat:2 }}</div>
+                    <div class="pill pill-value" style="margin-top:0.3rem;">
+                        ML: {{ signal.ml_confidence }}%
+                    </div>
+                </div>
+            </div>
+
+            <p style="margin-bottom:1rem;">{{ signal.ml_reason }}</p>
+
+            <div style="display:flex; gap:1rem;">
+                <div class="text-muted" style="font-size:0.85rem;">
+                    Market Cap: ${{ signal.market_cap_usd|floatformat:0 }}
+                </div>
+            </div>
+
+            <div style="margin-top:1.5rem; display:flex; gap:1rem;">
+                <a href="{% url 'boardroom' %}" class="btn btn-primary">
+                    Open in Boardroom →
+                </a>
+            </div>
+        </div>
+    {% else %}
+        <div class="glass-card" style="text-align:center;">
+            <h2>Ticker: {{ symbol }}</h2>
+            <p class="text-muted" style="margin-top:1rem;">
+                No signal data available for this ticker.
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
