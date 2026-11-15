@@ -28,7 +28,7 @@ function useTypewriter(text, isActive, speed = 20) {
   return { displayed, done };
 }
 
-export default function SpeechBubble({ turn, isLatest = false }) {
+export default function SpeechBubble({ turn, isLatest = false, onAskAgent }) {
   const isValue = turn.agent === 'value';
   const { displayed, done } = useTypewriter(turn.text, isLatest, 15);
 
@@ -46,14 +46,21 @@ export default function SpeechBubble({ turn, isLatest = false }) {
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
       animate={{ opacity: isLatest ? 1 : 0.92, y: 0, scale: 1 }}
       transition={{ duration: 0.25 }}
-      className={`${align} max-w-[85%] p-4 rounded-2xl border ${bgClass} transition-opacity duration-200`}
+      className={`${align} max-w-[85%] md:max-w-[80%] p-4 rounded-2xl border ${bgClass} transition-opacity duration-200 shadow-sm`}
     >
       {/* Agent label */}
-      <div className={`text-[10px] font-semibold uppercase tracking-wider ${textColor} mb-1.5`}>
-        {turn.agent === 'value' ? '⬆ Value' : turn.agent === 'jev' ? '🔒 Jev' : '⬇ Risk'}
-        <span className="ml-2 text-muted font-normal normal-case">
-          {turn.stance === 'buy' ? 'Bullish' : turn.stance === 'object' ? 'Cautious' : 'Neutral'}
-        </span>
+      <div className={`text-[10px] font-semibold uppercase tracking-wider ${textColor} mb-1.5 flex items-center justify-between`}>
+        <div>
+          {turn.agent === 'value' ? '⬆ Value Agent' : turn.agent === 'jev' ? '🔒 Jev' : '⬇ Risk Agent'}
+          <span className="ml-2 text-muted font-normal normal-case">
+            {turn.stance === 'buy' ? 'Bullish Thesis' : turn.stance === 'object' ? 'Cautious Scrutiny' : 'Compliance Verdict'}
+          </span>
+        </div>
+        {turn.conviction_delta !== undefined && turn.conviction_delta !== 0 && (
+          <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${turn.conviction_delta > 0 ? 'bg-value/10 text-value border border-value/20' : 'bg-risk/10 text-risk border border-risk/20'}`}>
+            {turn.conviction_delta > 0 ? `+${turn.conviction_delta}` : turn.conviction_delta}
+          </span>
+        )}
       </div>
 
       {/* Text with typewriter */}
@@ -62,20 +69,32 @@ export default function SpeechBubble({ turn, isLatest = false }) {
         {isLatest && !done && <span className="animate-pulse text-gold">▊</span>}
       </p>
 
-      {/* Evidence chips */}
-      {done && turn.evidence && turn.evidence.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2.5">
-          {turn.evidence.map((ev, i) => (
-            <motion.span
-              key={i}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.1, duration: 0.2 }}
-              className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-white/5 border border-white/10 text-muted"
+      {/* Evidence chips and interrogation action */}
+      {done && (
+        <div className="flex items-center justify-between gap-2 mt-2.5 flex-wrap">
+          {turn.evidence && turn.evidence.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {turn.evidence.map((ev, i) => (
+                <span
+                  key={i}
+                  className="px-2 py-0.5 text-[11px] font-mono rounded-md bg-white/5 border border-white/10 text-muted"
+                >
+                  {ev}
+                </span>
+              ))}
+            </div>
+          )}
+          {onAskAgent && turn.agent !== 'jev' && (
+            <button
+              type="button"
+              onClick={() => onAskAgent(turn.agent, turn.text)}
+              className="ml-auto text-[10px] font-mono text-muted hover:text-gold px-2 py-0.5 rounded-md bg-white/5 border border-white/10 hover:border-gold/30 hover:bg-gold/10 transition flex items-center gap-1 cursor-pointer"
+              title={`Ask @${turn.agent} to elaborate in Research Chat`}
             >
-              {ev}
-            </motion.span>
-          ))}
+              <span>💬</span>
+              <span>Interrogate @{turn.agent}</span>
+            </button>
+          )}
         </div>
       )}
     </motion.div>

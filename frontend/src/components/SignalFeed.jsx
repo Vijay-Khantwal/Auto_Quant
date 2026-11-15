@@ -18,6 +18,7 @@ export default function SignalFeed({
   selectedSignal,
   onSelectSignal,
   onAddCustomStock,
+  onCollapse,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -50,14 +51,25 @@ export default function SignalFeed({
 
   return (
     <div className="p-4 flex flex-col h-full">
-      {/* Header & Title */}
+      {/* Header & Title with Collapse Button */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
-          Institutional Signals
-        </h3>
-        <span className="text-[11px] font-mono text-gold px-2 py-0.5 rounded-full bg-gold/10 border border-gold/20">
-          {signals.length} stocks
-        </span>
+        <div className="flex items-center gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
+            Institutional Signals
+          </h3>
+          <span className="text-[11px] font-mono text-gold px-2 py-0.5 rounded-full bg-gold/10 border border-gold/20">
+            {signals.length}
+          </span>
+        </div>
+        {onCollapse && (
+          <button
+            onClick={onCollapse}
+            className="p-1 rounded-lg text-muted hover:text-gold hover:bg-white/10 transition text-xs"
+            title="Collapse Signals Feed ([)"
+          >
+            ◀
+          </button>
+        )}
       </div>
 
       {/* On-the-Fly Search & Add Any Stock Bar */}

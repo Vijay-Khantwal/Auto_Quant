@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { postChat, fetchChatHistory, clearChatHistory } from '../api';
 
@@ -26,11 +26,20 @@ function TypingIndicator() {
   );
 }
 
-export default function ResearchChat({ selectedSignal }) {
+export default function ResearchChat({ selectedSignal, externalPrompt, onCollapse }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const inputRef = useRef(null);
+
+  // Sync external prompt (e.g. from speech bubble interrogation)
+  useEffect(() => {
+    if (externalPrompt) {
+      setInput(externalPrompt);
+      setTimeout(() => inputRef.current?.focus(), 80);
+    }
+  }, [externalPrompt]);
 
   // Load persistent chat history from DB when a signal is selected
   useEffect(() => {
@@ -100,15 +109,26 @@ export default function ResearchChat({ selectedSignal }) {
     <div className="flex flex-col h-full bg-panel">
       {/* Header */}
       <div className="p-3.5 border-b border-border flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-text flex items-center gap-1.5">
-            <span>Research & Committee Chat</span>
-          </h3>
-          <p className="text-[11px] text-muted">
-            {selectedSignal
-              ? `Live context: ${selectedSignal.symbol} (${selectedSignal.market_cap_display || ''})`
-              : 'Select a stock to interrogate analysts'}
-          </p>
+        <div className="flex items-center gap-2">
+          {onCollapse && (
+            <button
+              onClick={onCollapse}
+              className="p-1 rounded-lg text-muted hover:text-gold hover:bg-white/10 transition text-xs"
+              title="Collapse Research Chat (])"
+            >
+              ▶
+            </button>
+          )}
+          <div>
+            <h3 className="text-sm font-semibold text-text flex items-center gap-1.5">
+              <span>Research & Committee Chat</span>
+            </h3>
+            <p className="text-[11px] text-muted">
+              {selectedSignal
+                ? `Live context: ${selectedSignal.symbol} (${selectedSignal.market_cap_display || ''})`
+                : 'Select a stock to interrogate analysts'}
+            </p>
+          </div>
         </div>
         {selectedSignal && messages.length > 0 && (
           <button
@@ -187,6 +207,7 @@ export default function ResearchChat({ selectedSignal }) {
         <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }}
           className="flex gap-2">
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}

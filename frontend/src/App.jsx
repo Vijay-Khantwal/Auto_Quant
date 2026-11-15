@@ -54,6 +54,9 @@ export default function App({ bootstrapData = {} }) {
   const [toasts, setToasts] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(!getCookie('aq_onboarded'));
   const [lessonCard, setLessonCard] = useState(null);
+  const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('aq_left_collapsed') === 'true');
+  const [rightCollapsed, setRightCollapsed] = useState(() => localStorage.getItem('aq_right_collapsed') === 'true');
+  const [chatPrompt, setChatPrompt] = useState('');
   const eventSourceRef = useRef(null);
 
   const addToast = useCallback((message, type = 'info') => {
@@ -63,6 +66,49 @@ export default function App({ bootstrapData = {} }) {
 
   const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // Save sidebar preferences
+  useEffect(() => {
+    localStorage.setItem('aq_left_collapsed', String(leftCollapsed));
+  }, [leftCollapsed]);
+
+  useEffect(() => {
+    localStorage.setItem('aq_right_collapsed', String(rightCollapsed));
+  }, [rightCollapsed]);
+
+  // Keyboard shortcuts: [ to toggle signals, ] to toggle chat, f for focus mode
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      if (e.key === '[') {
+        setLeftCollapsed(prev => !prev);
+      } else if (e.key === ']') {
+        setRightCollapsed(prev => !prev);
+      } else if (e.key.toLowerCase() === 'f') {
+        setLeftCollapsed(prevL => {
+          const bothCollapsed = prevL && rightCollapsed;
+          const target = !bothCollapsed;
+          setRightCollapsed(target);
+          return target;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [rightCollapsed]);
+
+  const handleToggleLeft = useCallback(() => setLeftCollapsed(p => !p), []);
+  const handleToggleRight = useCallback(() => setRightCollapsed(p => !p), []);
+  const handleToggleFocus = useCallback(() => {
+    const bothCollapsed = leftCollapsed && rightCollapsed;
+    setLeftCollapsed(!bothCollapsed);
+    setRightCollapsed(!bothCollapsed);
+  }, [leftCollapsed, rightCollapsed]);
+
+  const handleAskAgent = useCallback((agent, contextText) => {
+    setRightCollapsed(false); // auto-expand chat
+    setChatPrompt(`@${agent} Regarding: "${contextText.slice(0, 75).trim()}..." `);
   }, []);
 
   // Cleanup EventSource on unmount
@@ -336,16 +382,41 @@ export default function App({ bootstrapData = {} }) {
     <div className="h-[calc(100vh-65px)] flex flex-col overflow-hidden bg-bg">
       {/* Main 3-column layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: Signal Feed */}
-        <div className="w-80 flex-shrink-0 border-r border-border overflow-y-auto">
-          <SignalFeed
-            signals={signals}
-            loading={loadingSignals}
-            selectedSignal={selectedSignal}
-            onSelectSignal={handleSelectSignal}
-            onAddCustomStock={handleAddCustomStock}
-          />
-        </div>
+        {/* Left: Signal Feed (Collapsible) */}
+        {leftCollapsed ? (
+          <div
+            onClick={() => setLeftCollapsed(false)}
+            className="w-11 flex-shrink-0 border-r border-border bg-panel/70 hover:bg-panel cursor-pointer flex flex-col items-center py-4 transition-all duration-200 group select-none"
+            title="Expand Stock Signals Feed ([)"
+          >
+            <button
+              type="button"
+              className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-muted group-hover:text-gold group-hover:border-gold/40 transition mb-6"
+            >
+              ▶
+            </button>
+            <div
+              className="text-xs font-semibold uppercase tracking-wider text-muted group-hover:text-gold transition flex items-center gap-2"
+              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+            >
+              <span>Signals Feed</span>
+              <span className="font-mono text-[10px] text-gold px-1.5 py-0.5 rounded bg-gold/10 border border-gold/20">
+                {signals.length}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="w-80 flex-shrink-0 border-r border-border overflow-y-auto transition-all duration-200">
+            <SignalFeed
+              signals={signals}
+              loading={loadingSignals}
+              selectedSignal={selectedSignal}
+              onSelectSignal={handleSelectSignal}
+              onAddCustomStock={handleAddCustomStock}
+              onCollapse={() => setLeftCollapsed(true)}
+            />
+          </div>
+        )}
 
         {/* Center: Boardroom Table */}
         <div className="flex-1 overflow-y-auto">
@@ -362,13 +433,49 @@ export default function App({ bootstrapData = {} }) {
             onPass={handlePass}
             onRegenerateDebate={handleRegenerateDebate}
             lessonCard={lessonCard}
+            leftCollapsed={leftCollapsed}
+            rightCollapsed={rightCollapsed}
+            onToggleLeft={handleToggleLeft}
+            onToggleRight={handleToggleRight}
+            onToggleFocus={handleToggleFocus}
+            onAskAgent={handleAskAgent}
           />
         </div>
 
-        {/* Right: Research Chat */}
-        <div className="w-96 flex-shrink-0 border-l border-border overflow-hidden">
-          <ResearchChat selectedSignal={selectedSignal} />
-        </div>
+        {/* Right: Research Chat (Collapsible) */}
+        {rightCollapsed ? (
+          <div
+            onClick={() => setRightCollapsed(false)}
+            className="w-11 flex-shrink-0 border-l border-border bg-panel/70 hover:bg-panel cursor-pointer flex flex-col items-center py-4 transition-all duration-200 group select-none"
+            title="Expand Research Chat (])"
+          >
+            <button
+              type="button"
+              className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-muted group-hover:text-gold group-hover:border-gold/40 transition mb-6"
+            >
+              ◀
+            </button>
+            <div
+              className="text-xs font-semibold uppercase tracking-wider text-muted group-hover:text-gold transition flex items-center gap-2"
+              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+            >
+              <span>Research Chat</span>
+              {selectedSignal && (
+                <span className="font-mono text-[10px] text-gold px-1.5 py-0.5 rounded bg-gold/10 border border-gold/20">
+                  {selectedSignal.symbol}
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="w-96 flex-shrink-0 border-l border-border overflow-hidden transition-all duration-200">
+            <ResearchChat
+              selectedSignal={selectedSignal}
+              externalPrompt={chatPrompt}
+              onCollapse={() => setRightCollapsed(true)}
+            />
+          </div>
+        )}
       </div>
 
       {/* Bottom: Portfolio Sidebar */}

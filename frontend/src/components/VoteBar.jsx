@@ -58,19 +58,39 @@ export default function VoteBar({
     <div className="relative p-4 rounded-2xl bg-panel border border-border">
       <AnimatePresence>{showConfetti && <Confetti />}</AnimatePresence>
 
-      {/* Quantity slider */}
-      <div className="flex items-center gap-4 mb-3">
-        <label className="text-xs text-muted whitespace-nowrap">Qty</label>
+      {/* Quantity slider & quick steppers */}
+      <div className="flex items-center gap-3 mb-3 flex-wrap sm:flex-nowrap">
+        <label className="text-xs text-muted whitespace-nowrap">Quantity</label>
         <input
           type="range"
           min="1"
           max={maxQty}
           value={quantity}
           onChange={handleSlider}
-          className="flex-1 accent-gold h-1.5 cursor-pointer"
+          className="flex-1 accent-gold h-1.5 cursor-pointer min-w-[120px]"
         />
-        <span className="font-mono text-sm w-12 text-right">{quantity}</span>
-        <span className="text-xs text-muted">
+        <div className="flex items-center gap-1 font-mono text-xs">
+          <button
+            type="button"
+            onClick={() => onQuantityChange(Math.max(1, quantity - 5))}
+            className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-muted transition"
+            title="Decrease 5 shares"
+          >-5</button>
+          <span className="w-10 text-center font-bold text-gold">{quantity}</span>
+          <button
+            type="button"
+            onClick={() => onQuantityChange(Math.min(maxQty, quantity + 5))}
+            className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-muted transition"
+            title="Increase 5 shares"
+          >+5</button>
+          <button
+            type="button"
+            onClick={() => onQuantityChange(maxQty)}
+            className="px-2 py-0.5 rounded bg-gold/10 border border-gold/20 hover:bg-gold/20 text-gold transition"
+            title="Maximum allowed budget shares"
+          >Max</button>
+        </div>
+        <span className="text-xs text-muted/80 whitespace-nowrap">
           ≈ ₹{tradeValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
         </span>
       </div>
