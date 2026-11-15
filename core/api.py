@@ -517,19 +517,166 @@ def api_chat_clear(request, signal_id):
 @login_required
 @require_GET
 def api_portfolio(request):
-    """Return the user's portfolio: cash, holdings, total value."""
+    """
+    Return the user's complete portfolio:
+    - Cash balance
+    - Holdings with live/current LTP, invested cost, current market value, and unrealized PnL (₹ and %)
+    - Total portfolio equity, invested capital, and overall PnL
+    - Realized PnL from past sales
+    """
     portfolio, _ = Portfolio.objects.get_or_create(user=request.user)
-    holdings = [
-        {
+    should_refresh = request.GET.get('refresh') == 'true'
+
+    signal_map = {
+        s.symbol: s
+        for s in StockSignal.objects.all()
+    }
+
+    holdings_data = []
+    total_invested = 0.0
+    total_market_value = 0.0
+
+    for h in portfolio.holdings.all():
+        sig = signal_map.get(h.symbol)
+        ltp = float(sig.price) if sig else float(h.avg_price)
+        company_name = sig.company_name if sig else h.symbol
+
+        if should_refresh:
+            try:
+                import yfinance as yf
+                t = yf.Ticker(h.symbol)
+                fast_info = getattr(t, 'fast_info', None)
+                if fast_info and fast_info.last_price:
+                    ltp = round(float(fast_info.last_price), 2)
+                    if sig:
+                        sig.price = ltp
+                        sig.save(update_fields=['price'])
+            except Exception:
+                pass
+
+        qty = h.quantity
+        avg = float(h.avg_price)
+        cost = avg * qty
+        val = ltp * qty
+        pnl = val - cost
+        pnl_pct = round((pnl / cost * 100), 2) if cost > 0 else 0.0
+
+        total_invested += cost
+        total_market_value += val
+
+        holdings_data.append({
+            'id': h.id,
             'symbol': h.symbol,
-            'quantity': h.quantity,
-            'avg_price': float(h.avg_price),
-            'value': float(h.avg_price * h.quantity),
-        }
-        for h in portfolio.holdings.all()
-    ]
+            'company_name': company_name,
+            'quantity': qty,
+            'avg_price': round(avg, 2),
+            'current_price': round(ltp, 2),
+            'invested_value': round(cost, 2),
+            'market_value': round(val, 2),
+            'unrealized_pnl': round(pnl, 2),
+            'unrealized_pnl_pct': pnl_pct,
+        })
+
+    cash = float(portfolio.cash)
+    total_equity = cash + total_market_value
+    unrealized_pnl = total_market_value - total_invested
+    unrealized_pnl_pct = round((unrealized_pnl / total_invested * 100), 2) if total_invested > 0 else 0.0
+
+    sell_trades = Trade.objects.filter(user=request.user, decision='sell')
+    realized_pnl = sum(
+        (float(t.price) - float(t.signal.price if t.signal else t.price)) * t.quantity
+        for t in sell_trades
+    ) if sell_trades.exists() else 0.0
+
     return JsonResponse({
+        'cash': round(cash, 2),
+        'invested_capital': round(total_invested, 2),
+        'holdings_value': round(total_market_value, 2),
+        'total_value': round(total_equity, 2),
+        'unrealized_pnl': round(unrealized_pnl, 2),
+        'unrealized_pnl_pct': unrealized_pnl_pct,
+        'realized_pnl': round(realized_pnl, 2),
+        'holdings_count': len(holdings_data),
+        'holdings': holdings_data,
+    })
+
+
+@login_required
+@require_POST
+def api_portfolio_sell(request):
+    """Sell a holding (partial or full position)."""
+    try:
+        body = json.loads(request.body)
+        symbol = body.get('symbol')
+        quantity = int(body.get('quantity', 0))
+    except (json.JSONDecodeError, KeyError, ValueError):
+        return _json_error('Invalid request body.')
+
+    if not symbol or quantity <= 0:
+        return _json_error('Symbol and positive quantity required.')
+
+    portfolio, _ = Portfolio.objects.get_or_create(user=request.user)
+    try:
+        holding = portfolio.holdings.get(symbol=symbol)
+    except Holding.DoesNotExist:
+        return _json_error(f'Holding for {symbol} not found.', 404)
+
+    if quantity > holding.quantity:
+        return _json_error(f'Cannot sell {quantity} shares. You only own {holding.quantity}.', 400)
+
+    sig = StockSignal.objects.filter(symbol=symbol).first()
+    current_price = sig.price if sig else holding.avg_price
+
+    proceeds = current_price * quantity
+    portfolio.cash += proceeds
+    portfolio.save()
+
+    remaining_qty = holding.quantity - quantity
+    if remaining_qty == 0:
+        holding.delete()
+    else:
+        holding.quantity = remaining_qty
+        holding.save()
+
+    debate = Debate.objects.filter(user=request.user, signal=sig).order_by('-created_at').first()
+
+    trade = Trade.objects.create(
+        user=request.user,
+        signal=sig,
+        debate=debate,
+        decision='sell',
+        quantity=quantity,
+        price=current_price,
+        jev_approved=True,
+        jev_report={'approved': True, 'checks': [{'rule': 'sell_execution', 'passed': True, 'detail': f'Sold {quantity} shares at ₹{current_price}'}]},
+    )
+
+    return JsonResponse({
+        'success': True,
+        'trade_id': trade.id,
+        'symbol': symbol,
+        'sold_quantity': quantity,
+        'price': float(current_price),
+        'proceeds': float(proceeds),
+        'remaining_quantity': remaining_qty,
         'cash': float(portfolio.cash),
-        'holdings': holdings,
-        'total_value': float(portfolio.total_value),
+    })
+
+
+@login_required
+@require_GET
+def api_signal_quant(request, signal_id):
+    """Return the explainable ML quantitative profile for a stock signal."""
+    try:
+        signal = StockSignal.objects.get(pk=signal_id)
+    except StockSignal.DoesNotExist:
+        return _json_error('Signal not found.', 404)
+
+    from core.quant import compute_quant_profile
+    profile = compute_quant_profile(signal.sparkline, signal.price)
+    return JsonResponse({
+        'symbol': signal.symbol,
+        'company_name': signal.company_name,
+        'price': float(signal.price),
+        'profile': profile,
     })

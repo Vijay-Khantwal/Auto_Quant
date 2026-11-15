@@ -228,7 +228,7 @@ class DebateTurn(models.Model):
 
 class Trade(models.Model):
     """A recorded trade decision (execute or pass)."""
-    DECISION_CHOICES = [('execute', 'Execute'), ('pass', 'Pass')]
+    DECISION_CHOICES = [('execute', 'Execute'), ('pass', 'Pass'), ('sell', 'Sell')]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -240,6 +240,7 @@ class Trade(models.Model):
     )
     debate = models.ForeignKey(
         Debate, on_delete=models.CASCADE, related_name='trades',
+        null=True, blank=True,
     )
     decision = models.CharField(max_length=10, choices=DECISION_CHOICES)
     quantity = models.IntegerField(default=0)

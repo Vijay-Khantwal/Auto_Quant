@@ -4,6 +4,7 @@ import SignalFeed from './components/SignalFeed';
 import BoardroomTable from './components/BoardroomTable';
 import ResearchChat from './components/ResearchChat';
 import PortfolioSidebar from './components/PortfolioSidebar';
+import PortfolioModal from './components/PortfolioModal';
 import Onboarding from './components/Onboarding';
 import {
   fetchSignals,
@@ -11,6 +12,7 @@ import {
   getDebateStreamUrl,
   postJevCheck,
   postTrade,
+  postSellHolding,
   fetchPortfolio,
   searchOrCreateSignal
 } from './api';
@@ -56,6 +58,8 @@ export default function App({ bootstrapData = {} }) {
   const [lessonCard, setLessonCard] = useState(null);
   const [leftCollapsed, setLeftCollapsed] = useState(() => localStorage.getItem('aq_left_collapsed') === 'true');
   const [rightCollapsed, setRightCollapsed] = useState(() => localStorage.getItem('aq_right_collapsed') === 'true');
+  const [showPortfolioModal, setShowPortfolioModal] = useState(false);
+  const [refreshingLTP, setRefreshingLTP] = useState(false);
   const [chatPrompt, setChatPrompt] = useState('');
   const eventSourceRef = useRef(null);
 
@@ -67,6 +71,33 @@ export default function App({ bootstrapData = {} }) {
   const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
+
+  const handleRefreshLTP = useCallback(async () => {
+    setRefreshingLTP(true);
+    try {
+      const data = await fetchPortfolio(true);
+      setPortfolio(data);
+      addToast('Holdings LTP updated with live quotes', 'success');
+    } catch (err) {
+      console.error('Failed to refresh quotes:', err);
+      addToast('Failed to refresh quotes', 'error');
+    } finally {
+      setRefreshingLTP(false);
+    }
+  }, [addToast]);
+
+  const handleSellHolding = useCallback(async (symbol, quantity) => {
+    try {
+      const res = await postSellHolding(symbol, quantity);
+      addToast(`Sold ${quantity} × ${symbol} for ₹${Number(res.proceeds).toLocaleString()}`, 'success');
+      const updated = await fetchPortfolio(false);
+      setPortfolio(updated);
+    } catch (err) {
+      console.error('Sell failed:', err);
+      addToast('Sell failed: ' + err.message, 'error');
+      throw err;
+    }
+  }, [addToast]);
 
   // Save sidebar preferences
   useEffect(() => {
@@ -480,8 +511,25 @@ export default function App({ bootstrapData = {} }) {
 
       {/* Bottom: Portfolio Sidebar */}
       <div className="border-t border-border">
-        <PortfolioSidebar portfolio={portfolio} />
+        <PortfolioSidebar
+          portfolio={portfolio}
+          onOpenModal={() => setShowPortfolioModal(true)}
+        />
       </div>
+
+      {/* Portfolio Hub Modal */}
+      <AnimatePresence>
+        {showPortfolioModal && (
+          <PortfolioModal
+            isOpen={showPortfolioModal}
+            onClose={() => setShowPortfolioModal(false)}
+            portfolio={portfolio}
+            onRefreshLTP={handleRefreshLTP}
+            onSellHolding={handleSellHolding}
+            refreshing={refreshingLTP}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Onboarding */}
       <AnimatePresence>

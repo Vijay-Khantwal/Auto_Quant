@@ -16,6 +16,7 @@ urlpatterns = [
     ), name='login'),
     path('logout/', views.user_logout, name='logout'),
     path('boardroom/', views.boardroom, name='boardroom'),
+    path('portfolio/', views.portfolio_view, name='portfolio_view'),
     path('settings/', views.risk_settings, name='risk_settings'),
     path('skills/', views.skills, name='skills'),
     path('skills/download-example/', views.skill_download_example,
@@ -47,7 +48,9 @@ urlpatterns = [
     path('api/chat/', api.api_chat, name='api_chat'),
     path('api/chat/<int:signal_id>/history/', api.api_chat_history, name='api_chat_history'),
     path('api/chat/<int:signal_id>/clear/', api.api_chat_clear, name='api_chat_clear'),
+    path('api/signals/<int:signal_id>/quant/', api.api_signal_quant, name='api_signal_quant'),
     path('api/portfolio/', api.api_portfolio, name='api_portfolio'),
+    path('api/portfolio/sell/', api.api_portfolio_sell, name='api_portfolio_sell'),
 ]
 
 # Custom error handlers (Syllabus: Unit II — error handling)

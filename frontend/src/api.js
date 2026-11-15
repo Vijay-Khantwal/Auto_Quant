@@ -92,6 +92,17 @@ export function regenerateDebate(signalId) {
   });
 }
 
-export function fetchPortfolio() {
-  return apiFetch('/api/portfolio/');
+export function fetchPortfolio(refresh = false) {
+  return apiFetch(`/api/portfolio/${refresh ? '?refresh=true' : ''}`);
+}
+
+export function postSellHolding(symbol, quantity) {
+  return apiFetch(`/api/portfolio/sell/`, {
+    method: 'POST',
+    body: JSON.stringify({ symbol, quantity }),
+  });
+}
+
+export function fetchQuantSignal(signalId) {
+  return apiFetch(`/api/signals/${signalId}/quant/`);
 }

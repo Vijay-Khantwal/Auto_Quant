@@ -240,6 +240,60 @@ def ticker_detail(request, symbol):
     return render(request, 'ticker.html', {'signal': signal, 'symbol': symbol})
 
 
+@login_required
+def portfolio_view(request):
+    """Dedicated Portfolio and PnL Tracking Dashboard."""
+    portfolio, _ = Portfolio.objects.get_or_create(user=request.user)
+    signal_map = {s.symbol: s for s in StockSignal.objects.all()}
+
+    holdings_data = []
+    total_invested = 0.0
+    total_market_value = 0.0
+
+    for h in portfolio.holdings.all():
+        sig = signal_map.get(h.symbol)
+        ltp = float(sig.price) if sig else float(h.avg_price)
+        cost = float(h.avg_price) * h.quantity
+        val = ltp * h.quantity
+        pnl = val - cost
+        pnl_pct = (pnl / cost * 100) if cost > 0 else 0.0
+
+        total_invested += cost
+        total_market_value += val
+
+        holdings_data.append({
+            'symbol': h.symbol,
+            'company_name': sig.company_name if sig else h.symbol,
+            'quantity': h.quantity,
+            'avg_price': h.avg_price,
+            'current_price': ltp,
+            'invested_value': cost,
+            'market_value': val,
+            'unrealized_pnl': pnl,
+            'unrealized_pnl_pct': pnl_pct,
+        })
+
+    cash = float(portfolio.cash)
+    total_equity = cash + total_market_value
+    unrealized_pnl = total_market_value - total_invested
+    unrealized_pnl_pct = (unrealized_pnl / total_invested * 100) if total_invested > 0 else 0.0
+
+    trades = Trade.objects.filter(user=request.user).select_related('signal').order_by('-created_at')[:20]
+
+    context = {
+        'portfolio': portfolio,
+        'cash': cash,
+        'invested_capital': total_invested,
+        'holdings_value': total_market_value,
+        'total_value': total_equity,
+        'unrealized_pnl': unrealized_pnl,
+        'unrealized_pnl_pct': unrealized_pnl_pct,
+        'holdings': holdings_data,
+        'recent_trades': trades,
+    }
+    return render(request, 'portfolio.html', context)
+
+
 @permission_required('core.can_view_audit_log', raise_exception=True)
 @login_required
 def audit_log(request):

@@ -341,3 +341,74 @@ class StreamDebateTestCase(TestCase):
         res = self.client.get(f'/api/debate/{self.signal.id}/stream/')
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res['Content-Type'], 'text/event-stream')
+
+
+class PortfolioAndQuantTestCase(TestCase):
+    """Test Portfolio PnL tracking, selling, and Quant ML indicators."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('portuser', password='password123')
+        self.portfolio = Portfolio.objects.create(user=self.user, cash=Decimal('100000.00'))
+        self.signal = StockSignal.objects.create(
+            symbol='INFY.NS',
+            company_name='Infosys Limited',
+            sector='Technology',
+            price=Decimal('1500.00'),
+            market_cap_usd=60_000_000_000,
+            ml_confidence=82,
+            ml_reason='Breakout momentum',
+            sparkline=[1400.0 + i*4 for i in range(30)],
+        )
+        self.holding = Holding.objects.create(
+            portfolio=self.portfolio,
+            symbol='INFY.NS',
+            quantity=10,
+            avg_price=Decimal('1450.00'),
+        )
+        self.client.login(username='portuser', password='password123')
+
+    def test_portfolio_pnl_calculation(self):
+        """api_portfolio correctly returns unrealized PnL."""
+        res = self.client.get('/api/portfolio/')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['holdings_count'], 1)
+        # Cost = 1450 * 10 = 14500; Current value = 1500 * 10 = 15000; PnL = +500
+        holding = data['holdings'][0]
+        self.assertEqual(holding['invested_value'], 14500.0)
+        self.assertEqual(holding['market_value'], 15000.0)
+        self.assertEqual(holding['unrealized_pnl'], 500.0)
+        self.assertAlmostEqual(holding['unrealized_pnl_pct'], 3.45, places=1)
+
+    def test_portfolio_sell_holding(self):
+        """api_portfolio_sell successfully sells position and credits cash."""
+        res = self.client.post('/api/portfolio/sell/', json.dumps({
+            'symbol': 'INFY.NS',
+            'quantity': 5,
+        }), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['sold_quantity'], 5)
+        self.assertEqual(data['remaining_quantity'], 5)
+        # 5 * 1500 = 7500 added to cash (100000 + 7500 = 107500)
+        self.assertEqual(data['cash'], 107500.0)
+
+    def test_quant_signal_api(self):
+        """api_signal_quant returns explainable multi-factor metrics."""
+        res = self.client.get(f'/api/signals/{self.signal.id}/quant/')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn('profile', data)
+        prof = data['profile']
+        self.assertIn('rsi', prof)
+        self.assertIn('trend', prof)
+        self.assertIn('factors', prof)
+        self.assertIn('signal_verdict', prof)
+
+    def test_portfolio_page_view(self):
+        """The portfolio HTML page renders with 200 OK."""
+        res = self.client.get('/portfolio/')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'INFY.NS')

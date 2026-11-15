@@ -16,6 +16,7 @@
         <nav>
             {% if user.is_authenticated %}
                 <a href="{% url 'boardroom' %}">Boardroom</a>
+                <a href="{% url 'portfolio_view' %}">Portfolio</a>
                 <a href="{% url 'skills' %}">Skills</a>
                 <a href="{% url 'risk_settings' %}">Settings</a>
                 <a href="{% url 'history' %}">History</a>

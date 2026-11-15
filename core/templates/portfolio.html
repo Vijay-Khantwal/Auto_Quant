@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Portfolio & PnL — AutoQuant{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+        <div>
+            <h2 style="margin-bottom:0.25rem;">💼 Institutional Portfolio & PnL</h2>
+            <p class="text-muted" style="font-size:0.875rem;">Live position tracking, unrealized returns, and paper execution records.</p>
+        </div>
+        <div style="display:flex; gap:0.75rem;">
+            <a href="{% url 'boardroom' %}" class="btn btn-secondary btn-sm">🏛️ Go to Boardroom</a>
+            <button onclick="window.location.reload();" class="btn btn-primary btn-sm">↻ Refresh LTP</button>
+        </div>
+    </div>
+
+    {# ── Metric KPI Cards ── #}
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.5rem;">
+        <div class="glass-card" style="padding:1.25rem;">
+            <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase; font-family:monospace; margin-bottom:0.25rem;">Total Portfolio Value</div>
+            <div class="mono" style="font-size:1.5rem; font-weight:700; color:var(--gold);">₹{{ total_value|floatformat:2 }}</div>
+            <div class="text-muted" style="font-size:0.75rem; margin-top:0.25rem;">Cash + Open Positions</div>
+        </div>
+
+        <div class="glass-card" style="padding:1.25rem;">
+            <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase; font-family:monospace; margin-bottom:0.25rem;">Available Cash</div>
+            <div class="mono" style="font-size:1.5rem; font-weight:700; color:var(--text);">₹{{ cash|floatformat:2 }}</div>
+            <div class="text-muted" style="font-size:0.75rem; margin-top:0.25rem;">Liquid trading balance</div>
+        </div>
+
+        <div class="glass-card" style="padding:1.25rem;">
+            <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase; font-family:monospace; margin-bottom:0.25rem;">Invested Capital</div>
+            <div class="mono" style="font-size:1.5rem; font-weight:700; color:var(--text);">₹{{ invested_capital|floatformat:2 }}</div>
+            <div class="text-muted" style="font-size:0.75rem; margin-top:0.25rem;">Total purchase cost</div>
+        </div>
+
+        <div class="glass-card" style="padding:1.25rem;">
+            <div class="text-muted" style="font-size:0.75rem; text-transform:uppercase; font-family:monospace; margin-bottom:0.25rem;">Unrealized PnL</div>
+            <div class="mono" style="font-size:1.5rem; font-weight:700; {% if unrealized_pnl >= 0 %}color:var(--value);{% else %}color:var(--risk);{% endif %}">
+                {% if unrealized_pnl >= 0 %}+{% endif %}₹{{ unrealized_pnl|floatformat:2 }}
+                <span style="font-size:0.875rem;">({% if unrealized_pnl_pct >= 0 %}+{% endif %}{{ unrealized_pnl_pct|floatformat:1 }}%)</span>
+            </div>
+            <div class="text-muted" style="font-size:0.75rem; margin-top:0.25rem;">Active market returns</div>
+        </div>
+    </div>
+
+    {# ── Open Holdings Table ── #}
+    <div class="glass-card" style="padding:0; overflow:hidden; margin-bottom:1.75rem;">
+        <div style="padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="font-size:1rem; margin:0;">Active Equity Holdings ({{ holdings|length }})</h3>
+            <span class="text-muted" style="font-size:0.75rem; font-family:monospace;">Market: NSE / BSE</span>
+        </div>
+
+        {% if holdings %}
+            <div style="overflow-x:auto;">
+                <table class="data-table" style="margin:0;">
+                    <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Quantity</th>
+                            <th>Avg Buy Price</th>
+                            <th>Current Price (LTP)</th>
+                            <th>Market Value</th>
+                            <th>Unrealized PnL</th>
+                            <th style="text-align:right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in holdings %}
+                            <tr>
+                                <td>
+                                    <div class="mono" style="font-weight:700; color:var(--gold);">{{ h.symbol }}</div>
+                                    <div class="text-muted" style="font-size:0.75rem;">{{ h.company_name }}</div>
+                                </td>
+                                <td class="mono">{{ h.quantity }}</td>
+                                <td class="mono">₹{{ h.avg_price|floatformat:2 }}</td>
+                                <td class="mono">₹{{ h.current_price|floatformat:2 }}</td>
+                                <td class="mono">₹{{ h.market_value|floatformat:2 }}</td>
+                                <td>
+                                    <span class="pill {% if h.unrealized_pnl >= 0 %}pill-value{% else %}pill-risk{% endif %}">
+                                        {% if h.unrealized_pnl >= 0 %}+{% endif %}₹{{ h.unrealized_pnl|floatformat:2 }} ({% if h.unrealized_pnl_pct >= 0 %}+{% endif %}{{ h.unrealized_pnl_pct|floatformat:1 }}%)
+                                    </span>
+                                </td>
+                                <td style="text-align:right;">
+                                    <button
+                                        onclick="sellHolding('{{ h.symbol }}', {{ h.quantity }}, {{ h.current_price }})"
+                                        class="btn btn-sm"
+                                        style="background:rgba(248,113,113,0.15); color:var(--risk); border:1px solid rgba(248,113,113,0.3); font-size:0.75rem; padding:0.25rem 0.6rem;"
+                                    >
+                                        Sell Position
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div style="padding:3rem 1rem; text-align:center; color:var(--muted);">
+                <div style="font-size:2.5rem; margin-bottom:0.75rem;">📭</div>
+                <div style="font-weight:600; font-size:1rem; margin-bottom:0.25rem;">No open positions in your portfolio.</div>
+                <p style="font-size:0.875rem; margin-bottom:1rem;">Go to the Boardroom to analyze AI debate signals and execute paper trades.</p>
+                <a href="{% url 'boardroom' %}" class="btn btn-primary btn-sm">Open Boardroom Table</a>
+            </div>
+        {% endif %}
+    </div>
+
+    {# ── Recent Activity ── #}
+    {% if recent_trades %}
+        <div class="glass-card" style="padding:1.25rem;">
+            <h3 style="font-size:1rem; margin-bottom:1rem;">Recent Execution History</h3>
+            <div style="overflow-x:auto;">
+                <table class="data-table" style="margin:0;">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Ticker</th>
+                            <th>Action</th>
+                            <th>Shares</th>
+                            <th>Executed Price</th>
+                            <th>Compliance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in recent_trades %}
+                            <tr>
+                                <td class="text-muted" style="font-size:0.8rem;">{{ t.created_at|date:"d M Y, H:i" }}</td>
+                                <td class="mono font-bold">{{ t.signal.symbol|default:t.decision }}</td>
+                                <td>
+                                    {% if t.decision == 'execute' %}
+                                        <span class="pill pill-value">BUY</span>
+                                    {% elif t.decision == 'sell' %}
+                                        <span class="pill pill-risk">SELL</span>
+                                    {% else %}
+                                        <span class="pill" style="background:rgba(255,255,255,0.06); color:var(--muted);">PASS</span>
+                                    {% endif %}
+                                </td>
+                                <td class="mono">{{ t.quantity }}</td>
+                                <td class="mono">₹{{ t.price|floatformat:2 }}</td>
+                                <td>
+                                    {% if t.jev_approved %}
+                                        <span style="color:var(--value);">✓ Approved</span>
+                                    {% else %}
+                                        <span style="color:var(--risk);">✗ Blocked</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function getCSRFToken() {
+    const cookie = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+    return cookie ? cookie.split('=')[1] : '';
+}
+
+async function sellHolding(symbol, maxQty, ltp) {
+    const qtyStr = prompt(`Sell position in ${symbol}?\nEnter quantity to sell (Max: ${maxQty}):`, maxQty);
+    if (!qtyStr) return;
+    const qty = parseInt(qtyStr, 10);
+    if (isNaN(qty) || qty <= 0 || qty > maxQty) {
+        alert('Invalid quantity entered.');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/portfolio/sell/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken(),
+            },
+            body: JSON.stringify({ symbol: symbol, quantity: qty })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert(`Successfully sold ${qty} × ${symbol} for ₹${data.proceeds.toFixed(2)}.`);
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to sell position.'));
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+</script>
+{% endblock %}
