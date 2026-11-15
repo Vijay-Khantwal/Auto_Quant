@@ -35,6 +35,13 @@ export function fetchSignals() {
   return apiFetch('/api/signals/');
 }
 
+export function searchOrCreateSignal(query) {
+  return apiFetch('/api/signals/search_or_create/', {
+    method: 'POST',
+    body: JSON.stringify({ query }),
+  });
+}
+
 export function fetchDebate(signalId) {
   return apiFetch(`/api/debate/${signalId}/`);
 }

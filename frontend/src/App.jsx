@@ -5,7 +5,7 @@ import BoardroomTable from './components/BoardroomTable';
 import ResearchChat from './components/ResearchChat';
 import PortfolioSidebar from './components/PortfolioSidebar';
 import Onboarding from './components/Onboarding';
-import { fetchSignals, fetchDebate, postJevCheck, postTrade, fetchPortfolio, regenerateDebate } from './api';
+import { fetchSignals, fetchDebate, postJevCheck, postTrade, fetchPortfolio, regenerateDebate, searchOrCreateSignal } from './api';
 
 function getCookie(name) {
   const value = `; ${document.cookie}`;
@@ -176,6 +176,29 @@ export default function App({ bootstrapData = {} }) {
     }
   }, [selectedSignal, debate, signals, handleSelectSignal, addToast]);
 
+  const handleAddCustomStock = useCallback(async (query) => {
+    try {
+      const res = await searchOrCreateSignal(query);
+      const newSig = res.signal;
+      setSignals(prev => {
+        if (prev.some(s => s.id === newSig.id)) {
+          return prev;
+        }
+        return [newSig, ...prev];
+      });
+      handleSelectSignal(newSig);
+      addToast(
+        res.created
+          ? `Analyzed & loaded ${newSig.symbol} into Boardroom`
+          : `Selected ${newSig.symbol}`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Failed to add custom stock:', err);
+      addToast('Could not analyze stock: ' + err.message, 'error');
+    }
+  }, [handleSelectSignal, addToast]);
+
   const handleDismissOnboarding = useCallback(() => {
     document.cookie = 'aq_onboarded=1; path=/; max-age=31536000';
     setShowOnboarding(false);
@@ -192,6 +215,7 @@ export default function App({ bootstrapData = {} }) {
             loading={loadingSignals}
             selectedSignal={selectedSignal}
             onSelectSignal={handleSelectSignal}
+            onAddCustomStock={handleAddCustomStock}
           />
         </div>
 
