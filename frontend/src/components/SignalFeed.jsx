@@ -93,7 +93,7 @@ export default function SignalFeed({
       {isAnalyzing && (
         <div className="p-2.5 mb-3 rounded-xl bg-gold/10 border border-gold/30 text-gold text-xs flex items-center gap-2 animate-pulse">
           <span>⚡</span>
-          <span>Fetching live market data & generating debate...</span>
+          <span>Fetching live market quote & profile...</span>
         </div>
       )}
 
@@ -113,7 +113,7 @@ export default function SignalFeed({
               disabled={isAnalyzing}
               className="px-3 py-1.5 rounded-lg bg-gold/20 text-gold border border-gold/30 text-xs font-semibold hover:bg-gold/30 transition"
             >
-              Analyze "{searchQuery}" with Live Market AI →
+              Add "{searchQuery}" to Boardroom →
             </button>
           </div>
         ) : (

@@ -170,13 +170,6 @@ def api_search_or_create_signal(request):
         sparkline=sparkline,
     )
 
-    # Pre-generate debate with Azure OpenAI if available
-    from core.agents.debate import get_or_create_debate
-    try:
-        get_or_create_debate(request.user, new_signal)
-    except Exception as e:
-        logger.warning("Failed pre-generating debate for new signal %s: %s", symbol_to_try, e)
-
     return JsonResponse({
         'signal': {
             'id': new_signal.id,
@@ -257,6 +250,75 @@ def api_debate(request, signal_id):
         'jev_report': jev_report,
         'default_quantity': default_qty,
     })
+
+
+@login_required
+def api_debate_stream(request, signal_id):
+    """Server-Sent Events endpoint streaming the debate in real-time."""
+    from django.http import StreamingHttpResponse
+    try:
+        signal = StockSignal.objects.get(pk=signal_id)
+    except StockSignal.DoesNotExist:
+        return _json_error('Signal not found.', 404)
+
+    is_regen = request.GET.get('regenerate') == 'true'
+
+    from core.models import SkillProfile, Debate
+    active_skill = SkillProfile.objects.filter(user=request.user, is_active=True).first()
+    existing = Debate.objects.filter(signal=signal, user=request.user, skill_profile=active_skill).first()
+
+    # If already exists and not regenerating, emit complete event immediately!
+    if existing and existing.turns.exists() and not is_regen:
+        def instant_stream():
+            turns = [
+                {
+                    'order': t.order,
+                    'agent': t.agent,
+                    'stance': t.stance,
+                    'text': t.text,
+                    'evidence': t.evidence,
+                    'conviction_delta': t.conviction_delta,
+                }
+                for t in existing.turns.all()
+            ]
+            report = evaluate_trade(request.user, signal, 10)
+            data = {
+                'id': existing.id,
+                'summary': existing.summary_verdict,
+                'lesson': existing.lesson,
+                'turns': turns,
+                'skill_name': active_skill.name if active_skill else 'Default',
+                'value_tags': get_personality_tags(active_skill, 'value'),
+                'risk_tags': get_personality_tags(active_skill, 'risk'),
+                'source': existing.source,
+                'jev_result': report,
+            }
+            yield f"event: complete\ndata: {json.dumps(data)}\n\n"
+
+        response = StreamingHttpResponse(instant_stream(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
+
+    if is_regen and existing:
+        existing.delete()
+
+    from core.agents.debate import stream_debate_events
+
+    def event_stream():
+        try:
+            for event in stream_debate_events(request.user, signal, active_skill):
+                evt_name = event.get('event', 'message')
+                evt_data = json.dumps(event.get('data', {}))
+                yield f"event: {evt_name}\ndata: {evt_data}\n\n"
+        except Exception as e:
+            logger.error("Error in debate streaming: %s", e)
+            yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
+
+    response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
+    return response
 
 
 @login_required

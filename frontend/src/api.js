@@ -46,6 +46,10 @@ export function fetchDebate(signalId) {
   return apiFetch(`/api/debate/${signalId}/`);
 }
 
+export function getDebateStreamUrl(signalId, regenerate = false) {
+  return `/api/debate/${signalId}/stream/${regenerate ? '?regenerate=true' : ''}`;
+}
+
 export function postJevCheck(signalId, qty) {
   return apiFetch(`/api/jev-check/`, {
     method: 'POST',

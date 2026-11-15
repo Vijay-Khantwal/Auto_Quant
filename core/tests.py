@@ -311,3 +311,33 @@ class ChatRouterTestCase(TestCase):
         """Unknown query returns help text with tool=None."""
         result = route_chat('hello there', 'TEST.NS')
         self.assertIsNone(result['tool'])
+
+
+class StreamDebateTestCase(TestCase):
+    """Test the real-time SSE streaming endpoint for debates."""
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user('streamuser', password='password123')
+        self.signal = StockSignal.objects.create(
+            symbol='TCS.NS',
+            company_name='Tata Consultancy Services',
+            sector='Technology',
+            price=3800.00,
+            market_cap_usd=140_000_000_000,
+            ml_confidence=85,
+            ml_reason='Strong earnings momentum',
+            sparkline=[3800.0] * 30,
+        )
+
+    def test_stream_requires_login(self):
+        """Anonymous access redirects to login."""
+        res = self.client.get(f'/api/debate/{self.signal.id}/stream/')
+        self.assertEqual(res.status_code, 302)
+
+    def test_stream_returns_event_stream(self):
+        """Logged in user gets text/event-stream content type."""
+        self.client.login(username='streamuser', password='password123')
+        res = self.client.get(f'/api/debate/{self.signal.id}/stream/')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Content-Type'], 'text/event-stream')

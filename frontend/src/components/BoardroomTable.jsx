@@ -1,22 +1,9 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import AgentSeat from './AgentSeat';
 import SpeechBubble from './SpeechBubble';
 import ConvictionBar from './ConvictionBar';
 import JevPanel from './JevPanel';
 import VoteBar from './VoteBar';
-import useDebatePlayer from '../hooks/useDebatePlayer';
-
-function DebateSkeleton() {
-  return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-center space-y-3 animate-pulse">
-        <div className="w-16 h-16 rounded-full bg-white/5 mx-auto" />
-        <div className="h-3 bg-white/5 rounded w-40 mx-auto" />
-        <div className="h-2 bg-white/5 rounded w-32 mx-auto" />
-      </div>
-    </div>
-  );
-}
 
 function EmptyState() {
   return (
@@ -33,19 +20,50 @@ function EmptyState() {
 }
 
 export default function BoardroomTable({
-  signal, debate, jevResult, loadingDebate, debateFinished,
-  quantity, onQuantityChange, onDebateFinished, onExecute, onPass, lessonCard,
-  onRegenerateDebate
+  signal,
+  debate,
+  jevResult,
+  isStreaming = false,
+  debateFinished = false,
+  quantity,
+  onQuantityChange,
+  onExecute,
+  onPass,
+  lessonCard,
+  onRegenerateDebate,
 }) {
+  const scrollRef = useRef(null);
   const turns = debate?.debate?.turns || [];
   const debateData = debate?.debate || {};
-  const player = useDebatePlayer(turns, onDebateFinished);
+
+  // Auto-scroll to latest turn as messages arrive in real-time
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [turns.length, isStreaming]);
 
   if (!signal) return <EmptyState />;
-  if (loadingDebate) return <DebateSkeleton />;
 
-  const visibleTurns = turns.slice(0, player.currentTurnIndex + 1);
-  const isJevVisible = debateFinished || player.currentTurnIndex >= turns.length - 1;
+  // Determine which agent is currently formulating or speaking
+  let currentSpeakingAgent = null;
+  if (isStreaming) {
+    const turnsCount = turns.length;
+    if (turnsCount === 0 || turnsCount === 2 || turnsCount === 4) {
+      currentSpeakingAgent = 'value';
+    } else if (turnsCount === 1 || turnsCount === 3) {
+      currentSpeakingAgent = 'risk';
+    } else if (turnsCount >= 5) {
+      currentSpeakingAgent = 'jev';
+    }
+  }
+
+  // Calculate net conviction dynamically as turns stream in
+  const convictionValue = debateData.runningConviction !== undefined
+    ? debateData.runningConviction
+    : turns.reduce((acc, t) => acc + (t.conviction_delta || 0), 0);
+
+  const isJevVisible = debateFinished || !!jevResult;
 
   return (
     <div className="flex flex-col h-full p-6 space-y-4 overflow-y-auto">
@@ -57,11 +75,6 @@ export default function BoardroomTable({
             {signal.market_cap_display && (
               <span className="text-xs font-mono text-muted px-2 py-0.5 rounded bg-white/5 border border-white/10">
                 {signal.market_cap_display}
-              </span>
-            )}
-            {debateData.source === 'llm' && (
-              <span className="text-[10px] font-mono text-value px-2 py-0.5 rounded-full bg-value/10 border border-value/30">
-                ⚡ Live AI (Azure)
               </span>
             )}
           </div>
@@ -76,10 +89,11 @@ export default function BoardroomTable({
           {onRegenerateDebate && (
             <button
               onClick={onRegenerateDebate}
-              className="px-3 py-1 text-xs font-medium rounded-full bg-white/5 border border-white/10 hover:border-gold/40 hover:bg-gold/10 text-gold transition"
-              title="Regenerate dynamic debate using Azure OpenAI"
+              disabled={isStreaming}
+              className="px-3 py-1 text-xs font-medium rounded-full bg-white/5 border border-white/10 hover:border-gold/40 hover:bg-gold/10 text-gold transition disabled:opacity-40"
+              title="Regenerate dynamic debate in real time"
             >
-              ✨ Re-Debate (AI)
+              {isStreaming ? '⚡ Debating...' : '✨ Re-Debate'}
             </button>
           )}
         </div>
@@ -90,56 +104,52 @@ export default function BoardroomTable({
         <AgentSeat
           agent="value"
           name="Value Agent"
-          tags={debateData.value_tags || ['Analytical', 'Optimistic']}
-          isSpeaking={turns[player.currentTurnIndex]?.agent === 'value'}
+          tags={debateData.value_tags || ['Analytical', 'Growth Catalysts']}
+          isSpeaking={currentSpeakingAgent === 'value'}
         />
         <AgentSeat
           agent="risk"
           name="Risk Agent"
-          tags={debateData.risk_tags || ['Prudent', 'Skeptical']}
-          isSpeaking={turns[player.currentTurnIndex]?.agent === 'risk'}
+          tags={debateData.risk_tags || ['Prudent', 'Downside Scrutiny']}
+          isSpeaking={currentSpeakingAgent === 'risk'}
         />
       </div>
 
-      {/* Speech Bubbles */}
-      <div className="flex-1 overflow-y-auto space-y-3 min-h-[200px] max-h-[400px] px-2">
-        {visibleTurns.filter(t => t.agent !== 'jev').map((turn, i) => (
+      {/* Speech Bubbles Stream */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto space-y-3 min-h-[220px] max-h-[420px] px-2 scroll-smooth"
+      >
+        {turns.length === 0 && !isStreaming && (
+          <div className="text-center py-12 text-muted text-xs">
+            No debate turns recorded. Click "Re-Debate" to start the committee.
+          </div>
+        )}
+
+        {turns.filter(t => t.agent !== 'jev').map((turn, i) => (
           <SpeechBubble
-            key={i}
+            key={turn.order || i}
             turn={turn}
-            isLatest={i === visibleTurns.filter(t => t.agent !== 'jev').length - 1 && player.isPlaying}
+            isLatest={i === turns.filter(t => t.agent !== 'jev').length - 1 && isStreaming}
           />
         ))}
+
+        {/* Live real-time indicator */}
+        {isStreaming && (
+          <div className="flex items-center gap-2.5 py-2 px-3.5 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-gold animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-gold animate-ping" />
+            <span className="font-mono">
+              {currentSpeakingAgent === 'value' && 'Value Agent is formulating thesis & catalysts...'}
+              {currentSpeakingAgent === 'risk' && 'Risk Agent is scrutinizing valuation & downside risks...'}
+              {currentSpeakingAgent === 'jev' && 'Jev is evaluating deterministic compliance rules...'}
+              {!currentSpeakingAgent && 'Investment Committee is convening...'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Conviction Bar */}
-      <ConvictionBar value={player.convictionValue} />
-
-      {/* Player Controls */}
-      <div className="flex items-center justify-center gap-3">
-        {player.isPlaying ? (
-          <button onClick={player.pause} className="px-3 py-1.5 text-xs rounded-lg bg-panel border border-border hover:bg-white/10 transition">
-            ⏸ Pause
-          </button>
-        ) : player.currentTurnIndex < turns.length - 1 ? (
-          <button onClick={player.play} className="px-3 py-1.5 text-xs rounded-lg bg-panel border border-border hover:bg-white/10 transition">
-            ▶ Play
-          </button>
-        ) : null}
-        <button onClick={player.skipToEnd} className="px-3 py-1.5 text-xs rounded-lg bg-panel border border-border hover:bg-white/10 transition">
-          ⏭ Skip
-        </button>
-        <button onClick={player.replay} className="px-3 py-1.5 text-xs rounded-lg bg-panel border border-border hover:bg-white/10 transition">
-          ↺ Replay
-        </button>
-        {/* Progress */}
-        <div className="flex-1 max-w-[200px] h-1 rounded-full bg-white/5 overflow-hidden">
-          <div
-            className="h-full bg-gold/60 rounded-full transition-all duration-300"
-            style={{ width: `${player.progress}%` }}
-          />
-        </div>
-      </div>
+      <ConvictionBar value={convictionValue} />
 
       {/* Jev Panel */}
       {isJevVisible && (
@@ -169,7 +179,7 @@ export default function BoardroomTable({
       {lessonCard && (
         <div className="p-4 rounded-xl bg-gold/5 border border-gold/20 text-sm">
           <div className="text-gold font-semibold text-xs uppercase tracking-wider mb-1">
-            💡 What you just learned
+            💡 Educational Takeaway
           </div>
           <p className="text-text/90">{lessonCard}</p>
         </div>

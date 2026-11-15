@@ -44,7 +44,7 @@ export default function SpeechBubble({ turn, isLatest = false }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
-      animate={{ opacity: isLatest ? 1 : 0.65, y: 0, scale: 1 }}
+      animate={{ opacity: isLatest ? 1 : 0.92, y: 0, scale: 1 }}
       transition={{ duration: 0.25 }}
       className={`${align} max-w-[85%] p-4 rounded-2xl border ${bgClass} transition-opacity duration-200`}
     >

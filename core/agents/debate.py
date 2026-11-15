@@ -227,6 +227,219 @@ def regenerate_debate(user, signal):
     return get_or_create_debate(user, signal)
 
 
+def stream_debate_events(user, signal, active_skill=None):
+    """
+    Generator yielding real-time debate events via Server-Sent Events (SSE):
+    - {'event': 'init', 'data': {...}}
+    - {'event': 'turn', 'data': {'turn': {...}, 'conviction': int}}
+    - {'event': 'jev', 'data': {'turn': {...}, 'report': {...}, 'conviction': int}}
+    - {'event': 'done', 'data': {'debate_id': int, 'summary': str, 'lesson': str}}
+    """
+    import time
+    from core.models import SkillProfile, Debate, DebateTurn
+    from core.jev import evaluate_trade
+
+    if active_skill is None:
+        active_skill = SkillProfile.objects.filter(user=user, is_active=True).first()
+
+    yield {
+        'event': 'init',
+        'data': {
+            'signal_id': signal.id,
+            'symbol': signal.symbol,
+            'company_name': signal.company_name,
+            'skill_name': active_skill.name if active_skill else 'Default',
+        }
+    }
+
+    endpoint = os.environ.get('AZURE_OPENAI_ENDPOINT')
+    key = os.environ.get('AZURE_OPENAI_KEY')
+    version = os.environ.get('AZURE_OPENAI_API_VERSION', '2024-02-15-preview')
+    deployment = os.environ.get('AZURE_OPENAI_DEPLOYMENT_NAME', 'gpt-5.4-mini')
+
+    turns_collected = []
+    running_conviction = 0
+    summary = ''
+    lesson = ''
+    source = 'llm'
+
+    if endpoint and key:
+        style = active_skill.parsed.get('style', 'balanced') if active_skill else 'balanced'
+        instructions = active_skill.parsed.get('instructions', '') if active_skill else ''
+        mcap = getattr(signal, 'market_cap_display', f'${signal.market_cap_usd:,}')
+
+        prompt = f"""Generate an institutional boardroom debate for Indian equity {signal.symbol} ({signal.company_name}) at ₹{signal.price}.
+Sector: {signal.sector}
+Market Cap: {mcap}
+ML Momentum Confidence: {signal.ml_confidence}%
+Technical/ML Setup: {signal.ml_reason}
+Active Committee Style: {style}
+Tuning Directives: {instructions}
+
+Debate between Value Agent (seeking growth/moats/catalysts) and Risk Agent (probing valuation, headwinds, governance).
+Output EXACTLY 5 lines, one for each turn, starting with TURN: followed by a JSON object, then SUMMARY: and LESSON:. Do NOT wrap in markdown code blocks.
+Format:
+TURN: {{"order": 1, "agent": "value", "stance": "buy", "text": "...", "evidence": ["..."], "conviction_delta": 10}}
+TURN: {{"order": 2, "agent": "risk", "stance": "object", "text": "...", "evidence": ["..."], "conviction_delta": -8}}
+TURN: {{"order": 3, "agent": "value", "stance": "buy", "text": "...", "evidence": ["..."], "conviction_delta": 7}}
+TURN: {{"order": 4, "agent": "risk", "stance": "object", "text": "...", "evidence": ["..."], "conviction_delta": -6}}
+TURN: {{"order": 5, "agent": "value", "stance": "buy", "text": "...", "evidence": ["..."], "conviction_delta": 5}}
+SUMMARY: <verdict text>
+LESSON: <lesson text>"""
+
+        try:
+            from openai import AzureOpenAI
+            client = AzureOpenAI(
+                api_key=key,
+                api_version=version,
+                azure_endpoint=endpoint,
+                max_retries=2,
+            )
+            stream = client.chat.completions.create(
+                model=deployment,
+                messages=[
+                    {"role": "system", "content": "You are an expert Dalal Street investment committee simulating debates. Output exactly one line per turn starting with TURN: then JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_completion_tokens=1800,
+                stream=True,
+            )
+
+            buffer = ''
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    buffer += chunk.choices[0].delta.content
+                    while '\n' in buffer:
+                        line, buffer = buffer.split('\n', 1)
+                        line = line.strip()
+                        if line.startswith('TURN:'):
+                            try:
+                                turn_json = json.loads(line[5:].strip())
+                                running_conviction += turn_json.get('conviction_delta', 0)
+                                turns_collected.append(turn_json)
+                                yield {
+                                    'event': 'turn',
+                                    'data': {
+                                        'turn': turn_json,
+                                        'conviction': running_conviction,
+                                    }
+                                }
+                            except Exception as parse_err:
+                                logger.warning("Error parsing streamed turn line: %s", parse_err)
+                        elif line.startswith('SUMMARY:'):
+                            summary = line[8:].strip()
+                        elif line.startswith('LESSON:'):
+                            lesson = line[7:].strip()
+
+            if buffer.strip():
+                line = buffer.strip()
+                if line.startswith('TURN:'):
+                    try:
+                        turn_json = json.loads(line[5:].strip())
+                        running_conviction += turn_json.get('conviction_delta', 0)
+                        turns_collected.append(turn_json)
+                        yield {
+                            'event': 'turn',
+                            'data': {
+                                'turn': turn_json,
+                                'conviction': running_conviction,
+                            }
+                        }
+                    except Exception:
+                        pass
+                elif line.startswith('SUMMARY:'):
+                    summary = line[8:].strip()
+                elif line.startswith('LESSON:'):
+                    lesson = line[7:].strip()
+
+        except Exception as e:
+            logger.warning("Streaming from Azure OpenAI failed, using fallback: %s", e)
+            turns_collected = []
+
+    # Fallback if Azure failed or returned empty
+    if not turns_collected:
+        source = 'demo'
+        fixtures = _load_debates_fixture()
+        style = active_skill.parsed.get('style', 'balanced') if active_skill else 'balanced'
+        key = f"{signal.symbol}_{style}"
+        if key in fixtures:
+            fallback_turns = fixtures[key]
+        elif signal.symbol in fixtures:
+            fallback_turns = fixtures[signal.symbol]
+        else:
+            fallback_turns = _generic_debate_turns(signal)
+
+        running_conviction = 0
+        for td in fallback_turns:
+            time.sleep(0.3)
+            running_conviction += td.get('conviction_delta', 0)
+            turns_collected.append(td)
+            yield {
+                'event': 'turn',
+                'data': {
+                    'turn': td,
+                    'conviction': running_conviction,
+                }
+            }
+
+    # Jev deterministic compliance evaluation
+    try:
+        portfolio = user.portfolio
+        risk = user.risk_settings
+        max_value = (portfolio.total_value * risk.max_position_pct) / 100
+        default_qty = max(1, int(max_value / signal.price))
+    except Exception:
+        default_qty = 10
+
+    report = evaluate_trade(user, signal, default_qty)
+    jev_turn = _build_jev_turn(user, signal, turns_collected)
+    turns_collected.append(jev_turn)
+
+    yield {
+        'event': 'jev',
+        'data': {
+            'turn': jev_turn,
+            'conviction': running_conviction,
+            'report': report,
+            'default_quantity': default_qty,
+        }
+    }
+
+    if not summary:
+        summary = f"The committee analyzed {signal.symbol}."
+    if not lesson:
+        lesson = "Always verify quantitative conviction against sector headwinds and compliance limits."
+
+    # Persist completed debate into SQLite
+    debate = Debate.objects.create(
+        signal=signal,
+        user=user,
+        skill_profile=active_skill,
+        summary_verdict=summary,
+        lesson=lesson,
+        source=source,
+    )
+    for td in turns_collected:
+        DebateTurn.objects.create(
+            debate=debate,
+            order=td['order'],
+            agent=td['agent'],
+            stance=td['stance'],
+            text=td['text'],
+            evidence=td.get('evidence', []),
+            conviction_delta=td.get('conviction_delta', 0),
+        )
+
+    yield {
+        'event': 'done',
+        'data': {
+            'debate_id': debate.id,
+            'summary': debate.summary_verdict,
+            'lesson': debate.lesson,
+        }
+    }
+
+
 def _generate_azure_debate(user, signal, skill_profile):
     """Generate dynamic boardroom debate using Azure OpenAI."""
     from openai import AzureOpenAI

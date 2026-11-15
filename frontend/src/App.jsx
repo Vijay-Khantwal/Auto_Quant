@@ -1,11 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import SignalFeed from './components/SignalFeed';
 import BoardroomTable from './components/BoardroomTable';
 import ResearchChat from './components/ResearchChat';
 import PortfolioSidebar from './components/PortfolioSidebar';
 import Onboarding from './components/Onboarding';
-import { fetchSignals, fetchDebate, postJevCheck, postTrade, fetchPortfolio, regenerateDebate, searchOrCreateSignal } from './api';
+import {
+  fetchSignals,
+  fetchDebate,
+  getDebateStreamUrl,
+  postJevCheck,
+  postTrade,
+  fetchPortfolio,
+  searchOrCreateSignal
+} from './api';
 
 function getCookie(name) {
   const value = `; ${document.cookie}`;
@@ -41,11 +49,12 @@ export default function App({ bootstrapData = {} }) {
   const [portfolio, setPortfolio] = useState(bootstrapData.portfolio || null);
   const [quantity, setQuantity] = useState(10);
   const [loadingSignals, setLoadingSignals] = useState(!bootstrapData.signals);
-  const [loadingDebate, setLoadingDebate] = useState(false);
+  const [isStreamingDebate, setIsStreamingDebate] = useState(false);
   const [debateFinished, setDebateFinished] = useState(false);
   const [toasts, setToasts] = useState([]);
   const [showOnboarding, setShowOnboarding] = useState(!getCookie('aq_onboarded'));
   const [lessonCard, setLessonCard] = useState(null);
+  const eventSourceRef = useRef(null);
 
   const addToast = useCallback((message, type = 'info') => {
     const id = Date.now() + Math.random();
@@ -54,6 +63,15 @@ export default function App({ bootstrapData = {} }) {
 
   const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // Cleanup EventSource on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
   }, []);
 
   // Load signals on mount
@@ -81,42 +99,152 @@ export default function App({ bootstrapData = {} }) {
     }
   }, [bootstrapData.portfolio]);
 
-  // Select signal and load debate
-  const handleSelectSignal = useCallback(async (signal) => {
-    setSelectedSignal(signal);
+  // Connect real-time debate stream (handles both instant cached debates and live streaming)
+  const connectDebateStream = useCallback((signal, isRegen = false) => {
+    if (!signal) return;
+
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
     setDebate(null);
     setJevResult(null);
     setDebateFinished(false);
     setLessonCard(null);
-    setLoadingDebate(true);
+    setIsStreamingDebate(!isRegen ? false : true);
     setQuantity(10);
 
-    try {
-      const data = await fetchDebate(signal.id);
-      setDebate(data);
-      setLoadingDebate(false);
-    } catch (err) {
-      console.error('Failed to load debate:', err);
-      setLoadingDebate(false);
-      addToast('Failed to load debate', 'error');
-    }
-  }, [addToast]);
+    // Initial table placeholder so header and seats display immediately without skeleton buffering
+    setDebate({
+      debate: {
+        id: null,
+        skill_name: 'Institutional Committee',
+        turns: [],
+        value_tags: ['Analytical', 'Growth Catalysts'],
+        risk_tags: ['Prudent', 'Downside Scrutiny'],
+      },
+    });
 
-  const handleRegenerateDebate = useCallback(async () => {
+    const streamUrl = getDebateStreamUrl(signal.id, isRegen);
+    const es = new EventSource(streamUrl);
+    eventSourceRef.current = es;
+
+    // Fired immediately if debate already exists in DB
+    es.addEventListener('complete', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setDebate({ debate: data });
+        setJevResult(data.jev_result);
+        setDebateFinished(true);
+        setIsStreamingDebate(false);
+        if (data.lesson) setLessonCard(data.lesson);
+      } catch (err) {
+        console.error('Error parsing complete event:', err);
+      }
+      es.close();
+    });
+
+    // Fired when generating fresh debate
+    es.addEventListener('init', (e) => {
+      setIsStreamingDebate(true);
+      try {
+        const data = JSON.parse(e.data);
+        setDebate(prev => ({
+          debate: {
+            id: null,
+            skill_name: data.skill_name || 'Institutional Committee',
+            turns: [],
+            value_tags: ['Analytical', 'Growth Catalysts'],
+            risk_tags: ['Prudent', 'Downside Scrutiny'],
+          },
+        }));
+      } catch (err) {
+        console.error('Error parsing init event:', err);
+      }
+    });
+
+    // Fired turn by turn in real-time as each chat is generated
+    es.addEventListener('turn', (e) => {
+      setIsStreamingDebate(true);
+      try {
+        const data = JSON.parse(e.data);
+        setDebate(prev => {
+          const prevTurns = prev?.debate?.turns || [];
+          return {
+            ...prev,
+            debate: {
+              ...prev?.debate,
+              turns: [...prevTurns, data.turn],
+              runningConviction: data.conviction,
+            },
+          };
+        });
+      } catch (err) {
+        console.error('Error parsing turn event:', err);
+      }
+    });
+
+    // Fired when Jev deterministic compliance is evaluated
+    es.addEventListener('jev', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setDebate(prev => {
+          const prevTurns = prev?.debate?.turns || [];
+          return {
+            ...prev,
+            debate: {
+              ...prev?.debate,
+              turns: [...prevTurns, data.turn],
+              runningConviction: data.conviction,
+            },
+          };
+        });
+        setJevResult(data.report);
+      } catch (err) {
+        console.error('Error parsing jev event:', err);
+      }
+    });
+
+    // Fired when debate generation completes
+    es.addEventListener('done', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setDebate(prev => ({
+          ...prev,
+          debate: {
+            ...prev?.debate,
+            id: data.debate_id,
+            summary: data.summary,
+            lesson: data.lesson,
+          },
+        }));
+        setDebateFinished(true);
+        setIsStreamingDebate(false);
+        if (data.lesson) setLessonCard(data.lesson);
+      } catch (err) {
+        console.error('Error parsing done event:', err);
+      }
+      es.close();
+    });
+
+    es.addEventListener('error', (e) => {
+      setIsStreamingDebate(false);
+      es.close();
+    });
+  }, []);
+
+  // Select signal and load debate
+  const handleSelectSignal = useCallback((signal) => {
+    setSelectedSignal(signal);
+    connectDebateStream(signal, false);
+  }, [connectDebateStream]);
+
+  const handleRegenerateDebate = useCallback(() => {
     if (!selectedSignal) return;
-    setLoadingDebate(true);
-    setDebateFinished(false);
-    try {
-      const data = await regenerateDebate(selectedSignal.id);
-      setDebate(data);
-      addToast(`Debate re-generated with AI for ${selectedSignal.symbol}`, 'success');
-    } catch (err) {
-      console.error('Failed to regenerate debate:', err);
-      addToast('Failed to regenerate debate: ' + err.message, 'error');
-    } finally {
-      setLoadingDebate(false);
-    }
-  }, [selectedSignal, addToast]);
+    addToast(`Re-debating ${selectedSignal.symbol} in real time...`, 'info');
+    connectDebateStream(selectedSignal, true);
+  }, [selectedSignal, connectDebateStream, addToast]);
 
   // Jev check when quantity changes or debate finishes
   const handleJevCheck = useCallback(async (signalId, qty) => {
@@ -225,7 +353,7 @@ export default function App({ bootstrapData = {} }) {
             signal={selectedSignal}
             debate={debate}
             jevResult={jevResult}
-            loadingDebate={loadingDebate}
+            isStreaming={isStreamingDebate}
             debateFinished={debateFinished}
             quantity={quantity}
             onQuantityChange={handleQuantityChange}
