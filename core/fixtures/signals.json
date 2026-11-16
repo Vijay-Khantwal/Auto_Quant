@@ -5,7 +5,7 @@
     "sector": "Chemicals & Pharma",
     "price": 448.75,
     "market_cap_usd": 26400000000,
-    "ml_confidence": 87,
+    "ml_confidence": 84,
     "ml_reason": "Strong margin expansion with favorable raw material cycle; technical breakout above 200-DMA with rising volume.",
     "sparkline": [
       412.30, 418.55, 415.20, 422.80, 419.60, 425.10, 421.75, 428.40,
@@ -34,7 +34,7 @@
     "sector": "Consumer Internet & Quick Commerce",
     "price": 268.40,
     "market_cap_usd": 235000000000,
-    "ml_confidence": 92,
+    "ml_confidence": 86,
     "ml_reason": "Blinkit GOV doubling YoY with expanding contribution margin; food delivery profitability reaching steady state.",
     "sparkline": [
       230.5, 234.0, 232.1, 238.4, 236.0, 242.5, 240.2, 246.0, 244.5, 250.2,
@@ -48,7 +48,7 @@
     "sector": "Energy, Telecom & Retail",
     "price": 2985.00,
     "market_cap_usd": 2015000000000,
-    "ml_confidence": 84,
+    "ml_confidence": 78,
     "ml_reason": "ARPU hike in Jio flowing directly to EBITDA; retail expansion and new energy capex cycle peaking.",
     "sparkline": [
       2850.0, 2865.2, 2860.0, 2880.4, 2872.0, 2895.0, 2888.5, 2910.0, 2902.4, 2920.5,
@@ -62,8 +62,8 @@
     "sector": "Information Technology",
     "price": 3812.50,
     "market_cap_usd": 1390000000000,
-    "ml_confidence": 74,
-    "ml_reason": "Large deal pipeline acceleration; AI services revenue growing 35% QoQ. Consolidation pattern suggests upside breakout.",
+    "ml_confidence": 58,
+    "ml_reason": "Large deal pipeline steady, but US discretionary spend remains muted. Trading in a narrow 50-DMA/200-DMA consolidation channel.",
     "sparkline": [
       3680.00, 3695.40, 3710.25, 3698.80, 3725.60, 3715.30, 3740.10,
       3728.50, 3752.80, 3745.20, 3760.40, 3748.90, 3772.30, 3765.10,
@@ -78,8 +78,8 @@
     "sector": "Banking & Financial Services",
     "price": 1648.30,
     "market_cap_usd": 1280000000000,
-    "ml_confidence": 82,
-    "ml_reason": "Post-merger integration ahead of schedule; NIM expansion visible in Q2 data. Credit deposit ratio improving.",
+    "ml_confidence": 67,
+    "ml_reason": "Post-merger integration progressing; credit-deposit ratio stabilizing but deposit mobilization pressure limits near-term margin expansion.",
     "sparkline": [
       1580.00, 1588.50, 1595.20, 1590.80, 1602.40, 1598.10, 1610.30,
       1605.60, 1615.80, 1610.20, 1622.50, 1618.40, 1628.70, 1623.10,
@@ -94,8 +94,8 @@
     "sector": "Information Technology",
     "price": 1862.00,
     "market_cap_usd": 765000000000,
-    "ml_confidence": 79,
-    "ml_reason": "Financial services discretionary spend recovering in North America; Topaz AI adoption expanding client wallet share.",
+    "ml_confidence": 62,
+    "ml_reason": "Financial services discretionary spend recovering slowly; macro caution in European client base caps aggressive re-rating.",
     "sparkline": [
       1780.0, 1792.0, 1788.5, 1805.0, 1798.2, 1812.0, 1806.4, 1822.0, 1815.0, 1830.4,
       1824.0, 1838.5, 1832.0, 1845.0, 1840.2, 1852.0, 1846.5, 1858.0, 1851.2, 1864.0,
@@ -108,8 +108,8 @@
     "sector": "Renewable Energy & Capital Goods",
     "price": 68.20,
     "market_cap_usd": 92000000000,
-    "ml_confidence": 85,
-    "ml_reason": "Net cash company post debt reduction; record 3.8 GW order book with high-margin 3MW wind turbine series.",
+    "ml_confidence": 76,
+    "ml_reason": "Net cash balance sheet; expanding order book for 3MW turbines, though execution delivery timeline carries project risk.",
     "sparkline": [
       54.0, 55.5, 54.8, 57.2, 56.4, 58.8, 58.0, 60.5, 59.8, 62.0,
       61.2, 63.5, 62.8, 64.6, 63.8, 65.5, 64.9, 66.8, 66.0, 67.5,
@@ -122,8 +122,8 @@
     "sector": "Metals & Mining",
     "price": 152.80,
     "market_cap_usd": 189000000000,
-    "ml_confidence": 71,
-    "ml_reason": "Domestic auto and infra demand offsetting EU restructuring costs; blast furnace relining complete at Kalinganagar.",
+    "ml_confidence": 48,
+    "ml_reason": "Global steel price weakness and sustained operational drag at UK/Port Talbot facilities squeeze EBITDA margins.",
     "sparkline": [
       142.0, 143.5, 142.8, 145.0, 144.2, 146.5, 145.8, 148.0, 147.2, 149.0,
       148.4, 150.5, 149.8, 151.2, 150.5, 152.4, 151.6, 153.5, 152.8, 154.2,
@@ -134,14 +134,14 @@
     "symbol": "PENNY.NS",
     "company_name": "Bharat MicroPenny Ventures Ltd",
     "sector": "Financial Speculation",
-    "price": 12.40,
-    "market_cap_usd": 150000000,
-    "ml_confidence": 91,
-    "ml_reason": "Pump-and-dump momentum signal with artificial volume spike; extreme liquidity risk.",
+    "price": 11.85,
+    "market_cap_usd": 20000000,
+    "ml_confidence": 34,
+    "ml_reason": "Speculative micro-cap with circular volume patterns; extreme illiquidity, promoter pledging, and severe governance risk.",
     "sparkline": [
       8.20, 8.45, 8.10, 8.90, 8.60, 9.30, 9.00, 9.80, 9.50, 10.20,
       9.90, 10.65, 10.30, 11.10, 10.75, 11.50, 11.15, 11.90, 11.55, 12.30,
-      11.95, 12.70, 12.35, 13.10, 12.75, 13.50, 13.10, 13.80, 12.90, 12.40
+      11.95, 12.70, 12.35, 13.10, 12.75, 13.50, 13.10, 13.80, 12.90, 11.85
     ]
   },
   {
@@ -150,8 +150,8 @@
     "sector": "Automotive Tyres (High Nominal)",
     "price": 48250.00,
     "market_cap_usd": 203000000000,
-    "ml_confidence": 78,
-    "ml_reason": "Dominant market share in specialized heavy mining tyres; steady compounding growth.",
+    "ml_confidence": 65,
+    "ml_reason": "Dominant niche share in specialized heavy mining tyres; high nominal share price limits retail liquidity participation.",
     "sparkline": [
       46200.0, 46450.0, 46300.0, 46700.0, 46550.0, 47000.0, 46850.0, 47300.0,
       47150.0, 47500.0, 47350.0, 47700.0, 47550.0, 47900.0, 47750.0, 48100.0,
@@ -165,8 +165,8 @@
     "sector": "Construction & Real Estate",
     "price": 280.50,
     "market_cap_usd": 85000000000,
-    "ml_confidence": 42,
-    "ml_reason": "High debt overhang; weak quarterly cash flows with negative operational momentum.",
+    "ml_confidence": 38,
+    "ml_reason": "Strained working capital and rising debt servicing burdens; negative momentum with persistent institutional selling.",
     "sparkline": [
       310.0, 308.2, 305.5, 307.0, 303.4, 301.0, 302.5, 298.0, 299.4, 295.0,
       296.2, 292.0, 293.5, 289.0, 290.4, 286.0, 287.2, 283.0, 284.5, 281.0,

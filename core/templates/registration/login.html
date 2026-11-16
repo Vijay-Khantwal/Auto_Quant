@@ -2,34 +2,44 @@
 {% block title %}Log In — AutoQuant{% endblock %}
 
 {% block content %}
-<div class="page-container" style="max-width:440px;">
-    <div class="glass-card">
-        <h2 style="margin-bottom:1.5rem; text-align:center;">Log In</h2>
-
-        {% if form.errors %}
-            <div class="form-errors">
-                <p>Invalid username or password. Please try again.</p>
+<div class="auth-wrapper" style="min-height: calc(100vh - 130px); display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;">
+    <div class="auth-card" style="width: 100%; max-width: 420px; margin: 0 auto;">
+        <div class="glass-card" style="padding: 2.25rem; border-radius: 1.5rem; background: rgba(19, 24, 34, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 80px rgba(245, 196, 81, 0.06);">
+            <div style="text-align: center; margin-bottom: 1.75rem;">
+                <div style="font-size: 2.2rem; line-height: 1; margin-bottom: 0.5rem; color: var(--gold);">◈</div>
+                <h2 style="font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem;">Welcome Back</h2>
+                <p style="font-size: 0.85rem; color: var(--muted);">Log in to convene the AI Investment Committee</p>
             </div>
-        {% endif %}
 
-        <form method="post">
-            {% csrf_token %}
-            <div class="form-group">
-                <label for="id_username">Username</label>
-                <input type="text" name="username" id="id_username" class="form-input"
-                       autofocus required placeholder="demo">
-            </div>
-            <div class="form-group">
-                <label for="id_password">Password</label>
-                <input type="password" name="password" id="id_password" class="form-input"
-                       required placeholder="••••••••">
-            </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;">Log In</button>
-        </form>
+            {% if form.errors %}
+                <div class="form-errors" style="background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); border-radius: 0.75rem; padding: 0.75rem 1rem; margin-bottom: 1.25rem; color: var(--risk); font-size: 0.85rem;">
+                    <p style="margin: 0;">Invalid username or password. Please try again.</p>
+                </div>
+            {% endif %}
 
-        <p style="text-align:center; margin-top:1.25rem; font-size:0.9rem;" class="text-muted">
-            Don't have an account? <a href="{% url 'signup' %}" style="color:var(--gold);">Sign up</a>
-        </p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="id_username" style="display: block; font-size: 0.8rem; font-weight: 500; color: var(--muted); margin-bottom: 0.4rem;">Username</label>
+                    <input type="text" name="username" id="id_username" class="form-input"
+                           style="width: 100%; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.75rem; color: var(--text); font-size: 0.9rem;"
+                           autofocus required placeholder="e.g. demo or admin">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label for="id_password" style="display: block; font-size: 0.8rem; font-weight: 500; color: var(--muted); margin-bottom: 0.4rem;">Password</label>
+                    <input type="password" name="password" id="id_password" class="form-input"
+                           style="width: 100%; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.75rem; color: var(--text); font-size: 0.9rem;"
+                           required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; font-weight: 600; border-radius: 0.85rem; background: var(--gradient-gold); color: #0B1020; border: none; cursor: pointer; box-shadow: 0 4px 16px rgba(245, 196, 81, 0.3);">Log In</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.06); font-size: 0.85rem; color: var(--muted);">
+                Don't have an account? <a href="{% url 'signup' %}" style="color: var(--gold); font-weight: 600; text-decoration: none;">Sign up free →</a>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
+
+{% block footer %}{% endblock %}

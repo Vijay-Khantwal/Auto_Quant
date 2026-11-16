@@ -62,6 +62,7 @@ export default function App({ bootstrapData = {} }) {
   const [refreshingLTP, setRefreshingLTP] = useState(false);
   const [chatPrompt, setChatPrompt] = useState('');
   const eventSourceRef = useRef(null);
+  const debateCacheRef = useRef({});
 
   const addToast = useCallback((message, type = 'info') => {
     const id = Date.now() + Math.random();
@@ -211,11 +212,21 @@ export default function App({ bootstrapData = {} }) {
     es.addEventListener('complete', (e) => {
       try {
         const data = JSON.parse(e.data);
-        setDebate({ debate: data });
+        const debateObj = { debate: data };
+        setDebate(debateObj);
         setJevResult(data.jev_result);
         setDebateFinished(true);
         setIsStreamingDebate(false);
         if (data.lesson) setLessonCard(data.lesson);
+
+        // Save in local debate cache for instant zero-latency return
+        if (signal?.id) {
+          debateCacheRef.current[signal.id] = {
+            debate: debateObj,
+            jevResult: data.jev_result,
+            lesson: data.lesson,
+          };
+        }
       } catch (err) {
         console.error('Error parsing complete event:', err);
       }
@@ -287,15 +298,25 @@ export default function App({ bootstrapData = {} }) {
     es.addEventListener('done', (e) => {
       try {
         const data = JSON.parse(e.data);
-        setDebate(prev => ({
-          ...prev,
-          debate: {
-            ...prev?.debate,
-            id: data.debate_id,
-            summary: data.summary,
-            lesson: data.lesson,
-          },
-        }));
+        setDebate(prev => {
+          const updated = {
+            ...prev,
+            debate: {
+              ...prev?.debate,
+              id: data.debate_id,
+              summary: data.summary,
+              lesson: data.lesson,
+            },
+          };
+          if (signal?.id) {
+            debateCacheRef.current[signal.id] = {
+              debate: updated,
+              jevResult: jevResult,
+              lesson: data.lesson,
+            };
+          }
+          return updated;
+        });
         setDebateFinished(true);
         setIsStreamingDebate(false);
         if (data.lesson) setLessonCard(data.lesson);
@@ -309,16 +330,35 @@ export default function App({ bootstrapData = {} }) {
       setIsStreamingDebate(false);
       es.close();
     });
-  }, []);
+  }, [jevResult]);
 
-  // Select signal and load debate
+  // Select signal and load debate (instant if cached, otherwise connect stream)
   const handleSelectSignal = useCallback((signal) => {
+    if (!signal) return;
     setSelectedSignal(signal);
+
+    // Instant zero-latency restore if debate is already cached
+    const cached = debateCacheRef.current[signal.id];
+    if (cached && cached.debate?.debate?.turns?.length > 0) {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      setDebate(cached.debate);
+      setJevResult(cached.jevResult);
+      setDebateFinished(true);
+      setIsStreamingDebate(false);
+      setQuantity(10);
+      if (cached.lesson) setLessonCard(cached.lesson);
+      return;
+    }
+
     connectDebateStream(signal, false);
   }, [connectDebateStream]);
 
   const handleRegenerateDebate = useCallback(() => {
     if (!selectedSignal) return;
+    delete debateCacheRef.current[selectedSignal.id];
     addToast(`Re-debating ${selectedSignal.symbol} in real time...`, 'info');
     connectDebateStream(selectedSignal, true);
   }, [selectedSignal, connectDebateStream, addToast]);
@@ -417,7 +457,7 @@ export default function App({ bootstrapData = {} }) {
         {leftCollapsed ? (
           <div
             onClick={() => setLeftCollapsed(false)}
-            className="w-11 flex-shrink-0 border-r border-border bg-panel/70 hover:bg-panel cursor-pointer flex flex-col items-center py-4 transition-all duration-200 group select-none"
+            className="w-11 flex-shrink-0 border-r border-border bg-[#0F1526] hover:bg-panel cursor-pointer flex flex-col items-center py-4 transition-all duration-200 group select-none"
             title="Expand Stock Signals Feed ([)"
           >
             <button
@@ -437,7 +477,7 @@ export default function App({ bootstrapData = {} }) {
             </div>
           </div>
         ) : (
-          <div className="w-80 flex-shrink-0 border-r border-border overflow-y-auto transition-all duration-200">
+          <div className="w-80 flex-shrink-0 border-r border-border overflow-y-auto transition-all duration-200 bg-[#0D1225]/90">
             <SignalFeed
               signals={signals}
               loading={loadingSignals}
@@ -477,7 +517,7 @@ export default function App({ bootstrapData = {} }) {
         {rightCollapsed ? (
           <div
             onClick={() => setRightCollapsed(false)}
-            className="w-11 flex-shrink-0 border-l border-border bg-panel/70 hover:bg-panel cursor-pointer flex flex-col items-center py-4 transition-all duration-200 group select-none"
+            className="w-11 flex-shrink-0 border-l border-border bg-[#0F1526] hover:bg-panel cursor-pointer flex flex-col items-center py-4 transition-all duration-200 group select-none"
             title="Expand Research Chat (])"
           >
             <button
@@ -499,7 +539,7 @@ export default function App({ bootstrapData = {} }) {
             </div>
           </div>
         ) : (
-          <div className="w-96 flex-shrink-0 border-l border-border overflow-hidden transition-all duration-200">
+          <div className="w-96 flex-shrink-0 border-l border-border overflow-hidden transition-all duration-200 bg-[#0D1225]/90">
             <ResearchChat
               selectedSignal={selectedSignal}
               externalPrompt={chatPrompt}
@@ -510,7 +550,7 @@ export default function App({ bootstrapData = {} }) {
       </div>
 
       {/* Bottom: Portfolio Sidebar */}
-      <div className="border-t border-border">
+      <div>
         <PortfolioSidebar
           portfolio={portfolio}
           onOpenModal={() => setShowPortfolioModal(true)}

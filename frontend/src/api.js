@@ -24,8 +24,19 @@ async function apiFetch(url, options = {}) {
   });
 
   if (!res.ok) {
-    const errorText = await res.text().catch(() => 'Unknown error');
-    throw new Error(`API error ${res.status}: ${errorText}`);
+    let msg = `Request failed (${res.status})`;
+    try {
+      const data = await res.json();
+      if (data && data.error) {
+        msg = data.error;
+      }
+    } catch (_) {
+      try {
+        const text = await res.text();
+        if (text) msg = text;
+      } catch (_) {}
+    }
+    throw new Error(msg);
   }
 
   return res.json();
@@ -40,6 +51,10 @@ export function searchOrCreateSignal(query) {
     method: 'POST',
     body: JSON.stringify({ query }),
   });
+}
+
+export function searchStockRecommendations(query) {
+  return apiFetch(`/api/stocks/search/?q=${encodeURIComponent(query)}`);
 }
 
 export function fetchDebate(signalId) {

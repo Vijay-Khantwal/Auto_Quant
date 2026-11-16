@@ -1,56 +1,293 @@
 {% extends "base.html" %}
-{% block title %}AutoQuant Boardroom{% endblock %}
+{% block title %}AutoQuant — AI-Powered Investment Committee{% endblock %}
+
+{% block extra_head %}
+<style>
+  .landing-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 4.5rem 1.5rem 3rem;
+    text-align: center;
+    background: radial-gradient(circle at 50% -20%, rgba(245, 196, 81, 0.12) 0%, rgba(11, 16, 32, 0) 65%),
+                linear-gradient(180deg, #0B1020 0%, #0D1326 50%, #0B1020 100%);
+  }
+  .landing-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    mask-image: radial-gradient(ellipse at 50% 40%, black 20%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 40%, black 20%, transparent 75%);
+    pointer-events: none;
+  }
+  .landing-container {
+    max-width: 1040px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+  .landing-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: rgba(245, 196, 81, 0.1);
+    border: 1px solid rgba(245, 196, 81, 0.25);
+    margin-bottom: 1.5rem;
+  }
+  .landing-title {
+    font-size: clamp(2.4rem, 5vw, 3.8rem);
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 1.25rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #FFFFFF 20%, var(--gold) 85%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .landing-subtitle {
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    color: var(--muted);
+    max-width: 620px;
+    margin: 0 auto 2.25rem;
+    line-height: 1.7;
+  }
+  .landing-cta-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 3.5rem;
+  }
+  .debate-showcase {
+    background: rgba(19, 24, 34, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    padding: 1.75rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 60px rgba(245, 196, 81, 0.05);
+    margin: 0 auto 4.5rem;
+    max-width: 860px;
+  }
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 4.5rem;
+    text-align: left;
+  }
+  .feature-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1.25rem;
+    padding: 1.75rem 1.5rem;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .feature-box:hover {
+    transform: translateY(-3px);
+    border-color: rgba(245, 196, 81, 0.25);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  .step-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    text-align: center;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
 {% if user.is_authenticated %}
     {# ── Logged-in Dashboard ── #}
-    <div class="page-container">
-        <h1>Welcome back, {{ user.username }}</h1>
-        <div class="dashboard-grid">
-            <div class="glass-card stat-card">
-                <div class="stat-value">₹{{ portfolio.cash|floatformat:0 }}</div>
-                <div class="stat-label">Available Cash</div>
+    <div class="page-container" style="max-width: 1040px; margin: 0 auto; padding: 2.5rem 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1 style="font-size: 1.8rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.35rem;">Welcome back, {{ user.username }}</h1>
+                <p style="color: var(--muted); font-size: 0.95rem;">Dalal Street Investment Committee simulation overview.</p>
             </div>
-            <div class="glass-card stat-card">
-                <div class="stat-value">₹{{ portfolio.total_value|floatformat:0 }}</div>
-                <div class="stat-label">Portfolio Value</div>
-            </div>
-            <div class="glass-card stat-card">
-                <div class="stat-value">{{ portfolio.holdings.count }}</div>
-                <div class="stat-label">Holdings</div>
+            <div style="display: flex; gap: 0.75rem;">
+                <a href="{% url 'boardroom' %}" class="btn btn-primary" style="padding: 0.75rem 1.5rem; border-radius: 0.85rem; font-weight: 600; background: var(--gradient-gold); color: #0B1020; text-decoration: none; box-shadow: 0 4px 16px rgba(245, 196, 81, 0.3);">
+                    ◈ Enter Boardroom
+                </a>
             </div>
         </div>
 
-        <div style="margin-top:2rem; display:flex; gap:1rem; flex-wrap:wrap;">
-            <a href="{% url 'boardroom' %}" class="btn btn-primary">Enter Boardroom</a>
-            {% if last_signal %}
-                <a href="{% url 'boardroom' %}" class="btn btn-secondary">
-                    Resume: {{ last_signal.symbol }}
-                </a>
-            {% endif %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem;">
+            <div class="glass-card" style="padding: 1.5rem; border-radius: 1.25rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); text-align: center;">
+                <div style="font-size: 0.75rem; font-family: monospace; text-transform: uppercase; color: var(--muted); margin-bottom: 0.25rem;">Available Cash</div>
+                <div style="font-family: monospace; font-size: 1.8rem; font-weight: 700; color: var(--text);">₹{{ portfolio.cash|floatformat:0 }}</div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Liquid paper balance</div>
+            </div>
+            <div class="glass-card" style="padding: 1.5rem; border-radius: 1.25rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); text-align: center;">
+                <div style="font-size: 0.75rem; font-family: monospace; text-transform: uppercase; color: var(--muted); margin-bottom: 0.25rem;">Total Portfolio Value</div>
+                <div style="font-family: monospace; font-size: 1.8rem; font-weight: 700; color: var(--gold);">₹{{ portfolio.total_value|floatformat:0 }}</div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Cash + Equity assets</div>
+            </div>
+            <div class="glass-card" style="padding: 1.5rem; border-radius: 1.25rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); text-align: center;">
+                <div style="font-size: 0.75rem; font-family: monospace; text-transform: uppercase; color: var(--muted); margin-bottom: 0.25rem;">Active Holdings</div>
+                <div style="font-family: monospace; font-size: 1.8rem; font-weight: 700; color: var(--value);">{{ portfolio.holdings.count }}</div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem;">Open positions</div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <a href="{% url 'boardroom' %}" class="btn btn-primary" style="padding: 0.85rem 1.75rem; border-radius: 0.85rem; font-weight: 600; background: var(--gradient-gold); color: #0B1020; text-decoration: none;">
+                Launch Live Boardroom →
+            </a>
+            <a href="{% url 'portfolio_view' %}" class="btn btn-secondary" style="padding: 0.85rem 1.5rem; border-radius: 0.85rem; font-weight: 600; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); color: var(--text); text-decoration: none;">
+                💼 View Portfolio & PnL Hub
+            </a>
         </div>
     </div>
 {% else %}
-    {# ── Anonymous Landing ── #}
-    <div class="hero">
-        <h1>AI Agents Debate.<br>You Decide.</h1>
-        <p>Watch two AI analysts argue a stock's case, while a deterministic compliance officer guards your risk. Cast the final vote: Execute or Pass.</p>
-        <div class="hero-buttons">
-            <a href="{% url 'signup' %}" class="btn btn-primary">Get Started</a>
-            <a href="{% url 'login' %}" class="btn btn-secondary">Log In</a>
-        </div>
-
-        {# ── CSS-only agent bubble preview ── #}
-        <div class="agent-preview">
-            <div class="agent-bubble value-bubble">
-                <div class="bubble-header text-value">⬆ Value Agent</div>
-                "P/E of 11.2 vs sector average of 19 — that's a 41% discount. With margins expanding 20%, this is a textbook value play."
+    {# ── Anonymous Landing Page ── #}
+    <div class="landing-hero">
+        <div class="landing-container">
+            <div class="landing-badge">
+                <span>◈</span>
+                <span>AI-Powered Investment Committee</span>
             </div>
-            <div class="agent-bubble risk-bubble">
-                <div class="bubble-header text-risk">⬇ Risk Agent</div>
-                "The CEO just sold 10% of their holdings. When insiders are selling, retail shouldn't be buying."
+
+            <h1 class="landing-title">
+                AI Agents Debate.<br>You Decide.
+            </h1>
+
+            <p class="landing-subtitle">
+                Watch bullish Value and cautious Risk AI analysts argue stock fundamentals in real time.
+                A deterministic compliance officer guards your risk limits before every trade.
+            </p>
+
+            <div class="landing-cta-group">
+                <a href="{% url 'boardroom' %}" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.95rem 2.25rem; font-size: 1rem; font-weight: 700; border-radius: 1rem; background: var(--gradient-gold); color: #0B1020; text-decoration: none; box-shadow: 0 6px 24px rgba(245, 196, 81, 0.35); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <span>◈</span>
+                    <span>Enter Boardroom</span>
+                </a>
+                <a href="{% url 'login' %}" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.95rem 2rem; font-size: 1rem; font-weight: 600; border-radius: 1rem; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); color: var(--text); text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='rgba(255, 255, 255, 0.12)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.06)'">
+                    <span>Log In</span>
+                </a>
+            </div>
+
+            {# ── Simulated Boardroom Live Preview Card ── #}
+            <div class="debate-showcase">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-family: monospace; font-size: 1.15rem; font-weight: 700; color: var(--gold);">ZOMATO.NS</span>
+                        <span style="font-family: monospace; font-size: 0.9rem; color: var(--text);">₹268.40</span>
+                        <span style="font-size: 0.75rem; font-family: monospace; padding: 0.2rem 0.5rem; border-radius: 0.35rem; background: rgba(52, 211, 153, 0.1); color: var(--value); border: 1px solid rgba(52, 211, 153, 0.2);">+14.2% (30d)</span>
+                    </div>
+                    <span style="font-size: 0.75rem; font-family: monospace; color: var(--gold); display: flex; align-items: center; gap: 0.35rem;">
+                        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--gold);"></span>
+                        Live Debate
+                    </span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; text-align: left; margin-bottom: 1.25rem;">
+                    <div style="padding: 1.25rem; border-radius: 1rem; background: rgba(52, 211, 153, 0.05); border: 1px solid rgba(52, 211, 153, 0.2);">
+                        <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--value); margin-bottom: 0.5rem;">
+                            ⬆ Value Agent · Bullish Thesis (+10)
+                        </div>
+                        <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text); margin: 0;">
+                            "Blinkit GOV doubling YoY indicates the quick-commerce moat is compounding. Contribution margins continue turning positive across dark stores."
+                        </p>
+                    </div>
+
+                    <div style="padding: 1.25rem; border-radius: 1rem; background: rgba(248, 113, 113, 0.05); border: 1px solid rgba(248, 113, 113, 0.2);">
+                        <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--risk); margin-bottom: 0.5rem;">
+                            ⬇ Risk Agent · Downside Scrutiny (-8)
+                        </div>
+                        <p style="font-size: 0.85rem; line-height: 1.6; color: var(--text); margin: 0;">
+                            "Intensified competitive aggression from Swiggy and Zepto requires higher ad spend. Valuations leave zero margin of safety for supply chain bottlenecks."
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1.25rem; border-radius: 0.85rem; background: rgba(96, 165, 250, 0.08); border: 1px solid rgba(96, 165, 250, 0.2); font-size: 0.8rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--jev);">
+                        <span>🔒</span>
+                        <span style="font-weight: 600;">Jev Compliance:</span>
+                        <span style="color: var(--text);">Position 4.9% ≤ Max 5.0% · Daily limits passed. Trade APPROVED.</span>
+                    </div>
+                    <span style="color: var(--value); font-weight: 700; font-family: monospace;">✓ Ready to Execute</span>
+                </div>
+            </div>
+
+            {# ── 3 Visual Pillar Cards ── #}
+            <div class="feature-grid">
+                <div class="feature-box">
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">💬</div>
+                    <h3 style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem;">Dual-Agent Debates</h3>
+                    <p style="font-size: 0.85rem; line-height: 1.6; color: var(--muted); margin: 0;">
+                        Watch Value and Risk agents argue to-and-fro with live financial data, valuation multiples, and explainable ML quantitative metrics.
+                    </p>
+                </div>
+
+                <div class="feature-box">
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">🔒</div>
+                    <h3 style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem;">Deterministic Compliance</h3>
+                    <p style="font-size: 0.85rem; line-height: 1.6; color: var(--muted); margin: 0;">
+                        Jev runs hard-coded Python rule checks on position sizing, market cap floors, and daily velocity. Never hallucinated, never prompt-injected.
+                    </p>
+                </div>
+
+                <div class="feature-box">
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">📊</div>
+                    <h3 style="font-size: 1.1rem; font-weight: 700; color: #FFFFFF; margin-bottom: 0.5rem;">Paper Trading & PnL Hub</h3>
+                    <p style="font-size: 0.85rem; line-height: 1.6; color: var(--muted); margin: 0;">
+                        Trade virtual capital on Indian equities with live LTP updates, portfolio allocation charts, holding sells, and persistent audit logs.
+                    </p>
+                </div>
+            </div>
+
+            {# ── 3-Step "How It Works" ── #}
+            <div style="padding: 2.5rem 1rem; border-top: 1px solid rgba(255, 255, 255, 0.08); text-align: center;">
+                <h2 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin-bottom: 0.5rem;">Workflow</h2>
+                <h3 style="font-size: 1.5rem; font-weight: 700; color: #FFFFFF; margin-bottom: 2rem;">How the Committee Operates</h3>
+
+                <div class="steps-grid">
+                    <div class="step-card">
+                        <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(245, 196, 81, 0.15); border: 1px solid var(--gold); color: var(--gold); font-weight: 700; font-family: monospace; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">1</div>
+                        <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 0.35rem;">Pick Any Stock</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted); margin: 0;">Choose from pre-loaded ML signals or search custom tickers (e.g. ITC, RELIANCE).</p>
+                    </div>
+
+                    <div class="step-card">
+                        <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(245, 196, 81, 0.15); border: 1px solid var(--gold); color: var(--gold); font-weight: 700; font-family: monospace; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">2</div>
+                        <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 0.35rem;">Watch the Debate</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted); margin: 0;">Follow the to-and-fro arguments as the Conviction Tug-of-War needle reacts turn by turn.</p>
+                    </div>
+
+                    <div class="step-card">
+                        <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(245, 196, 81, 0.15); border: 1px solid var(--gold); color: var(--gold); font-weight: 700; font-family: monospace; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem;">3</div>
+                        <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 0.35rem;">Cast Final Vote</h4>
+                        <p style="font-size: 0.8rem; color: var(--muted); margin: 0;">Adjust quantity and execute or pass. Jev ensures compliance before any order executes.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 {% endif %}
+{% endblock %}
+
+{% block footer %}
+<footer class="footer-disclaimer" style="text-align: center; padding: 1.5rem; font-size: 0.75rem; color: var(--muted); border-top: 1px solid rgba(255, 255, 255, 0.06); background: #0B1020;">
+    ◈ AutoQuant Boardroom · Dalal Street Educational Simulation · Not Financial Advice
+</footer>
 {% endblock %}

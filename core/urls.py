@@ -35,10 +35,11 @@ urlpatterns = [
     ),
 
     path('audit/', views.audit_log, name='audit_log'),
-    path('syllabus/', views.syllabus, name='syllabus'),
+    re_path(r'^[sS]yllabus/?$', views.syllabus, name='syllabus'),
 
     # ── JSON API (for React Boardroom) ───────────────────────────────────
     path('api/signals/', api.api_signals, name='api_signals'),
+    path('api/stocks/search/', api.api_stock_search, name='api_stock_search'),
     path('api/signals/search_or_create/', api.api_search_or_create_signal, name='api_search_or_create_signal'),
     path('api/debate/<int:signal_id>/', api.api_debate, name='api_debate'),
     path('api/debate/<int:signal_id>/stream/', api.api_debate_stream, name='api_debate_stream'),

@@ -9,6 +9,7 @@ import logging
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
+from django.db import models
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
@@ -50,10 +51,157 @@ def api_signals(request):
     return JsonResponse({'signals': data})
 
 
+# Curated master catalog of high-volume Indian equities with popular company names & aliases
+INDIAN_STOCK_CATALOG = [
+    {"symbol": "RELIANCE.NS", "name": "Reliance Industries Ltd", "sector": "Energy & Retail", "aliases": ["RELIANCE", "RIL", "JIO"]},
+    {"symbol": "TCS.NS", "name": "Tata Consultancy Services Ltd", "sector": "Information Technology", "aliases": ["TCS", "TATA CONSULTANCY"]},
+    {"symbol": "HDFCBANK.NS", "name": "HDFC Bank Ltd", "sector": "Banking & Financial Services", "aliases": ["HDFC", "HDFCBANK"]},
+    {"symbol": "INFY.NS", "name": "Infosys Ltd", "sector": "Information Technology", "aliases": ["INFY", "INFOSYS"]},
+    {"symbol": "ICICIBANK.NS", "name": "ICICI Bank Ltd", "sector": "Banking & Financial Services", "aliases": ["ICICI", "ICICIBANK"]},
+    {"symbol": "BHARTIARTL.NS", "name": "Bharti Airtel Ltd", "sector": "Telecommunications", "aliases": ["AIRTEL", "BHARTI", "BHARTIARTL"]},
+    {"symbol": "SBIN.NS", "name": "State Bank of India", "sector": "Public Sector Banking", "aliases": ["SBI", "SBIN", "STATE BANK"]},
+    {"symbol": "ITC.NS", "name": "ITC Limited", "sector": "Consumer Goods & FMCG", "aliases": ["ITC"]},
+    {"symbol": "HINDUNILVR.NS", "name": "Hindustan Unilever Ltd", "sector": "Consumer Goods & FMCG", "aliases": ["HUL", "HINDUNILVR", "UNILEVER"]},
+    {"symbol": "LT.NS", "name": "Larsen & Toubro Ltd", "sector": "Infrastructure & Engineering", "aliases": ["LT", "L&T", "LARSEN"]},
+    {"symbol": "BAJFINANCE.NS", "name": "Bajaj Finance Ltd", "sector": "Financial Services & NBFC", "aliases": ["BAJFINANCE", "BAJAJ FINANCE"]},
+    {"symbol": "MARUTI.NS", "name": "Maruti Suzuki India Ltd", "sector": "Automobile", "aliases": ["MARUTI", "SUZUKI"]},
+    {"symbol": "SUNPHARMA.NS", "name": "Sun Pharmaceutical Industries Ltd", "sector": "Pharmaceuticals", "aliases": ["SUN", "SUNPHARMA"]},
+    {"symbol": "TATAMOTORS.NS", "name": "Tata Motors Ltd", "sector": "Automobile & EV", "aliases": ["TATAMOTORS", "TATA MOTORS", "JLR"]},
+    {"symbol": "TITAN.NS", "name": "Titan Company Ltd", "sector": "Consumer Discretionary", "aliases": ["TITAN", "TANISHQ"]},
+    {"symbol": "ASIANPAINT.NS", "name": "Asian Paints Ltd", "sector": "Paints & Home Decor", "aliases": ["ASIANPAINT", "ASIAN PAINTS"]},
+    {"symbol": "AXISBANK.NS", "name": "Axis Bank Ltd", "sector": "Banking & Financial Services", "aliases": ["AXIS", "AXISBANK"]},
+    {"symbol": "KOTAKBANK.NS", "name": "Kotak Mahindra Bank Ltd", "sector": "Banking & Financial Services", "aliases": ["KOTAK", "KOTAKBANK"]},
+    {"symbol": "NTPC.NS", "name": "NTPC Limited", "sector": "Power Generation", "aliases": ["NTPC"]},
+    {"symbol": "POWERGRID.NS", "name": "Power Grid Corporation of India", "sector": "Power Transmission", "aliases": ["POWERGRID", "POWER GRID"]},
+    {"symbol": "ONGC.NS", "name": "Oil & Natural Gas Corporation", "sector": "Oil & Gas", "aliases": ["ONGC"]},
+    {"symbol": "COALINDIA.NS", "name": "Coal India Ltd", "sector": "Mining & Natural Resources", "aliases": ["COALINDIA", "COAL INDIA"]},
+    {"symbol": "TATASTEEL.NS", "name": "Tata Steel Ltd", "sector": "Metals & Mining", "aliases": ["TATASTEEL", "TATA STEEL"]},
+    {"symbol": "JSWSTEEL.NS", "name": "JSW Steel Ltd", "sector": "Metals & Mining", "aliases": ["JSW", "JSWSTEEL"]},
+    {"symbol": "M&M.NS", "name": "Mahindra & Mahindra Ltd", "sector": "Automobile & Farm Equipment", "aliases": ["M&M", "MAHINDRA", "MNM"]},
+    {"symbol": "ADANIENT.NS", "name": "Adani Enterprises Ltd", "sector": "Diversified Conglomerate", "aliases": ["ADANI", "ADANIENT", "ADANI ENTERPRISES"]},
+    {"symbol": "ADANIPORTS.NS", "name": "Adani Ports & SEZ Ltd", "sector": "Ports & Logistics", "aliases": ["ADANIPORTS", "ADANI PORTS"]},
+    {"symbol": "ADANIPOWER.NS", "name": "Adani Power Ltd", "sector": "Power & Energy", "aliases": ["ADANIPOWER", "ADANI POWER"]},
+    {"symbol": "ULTRACEMCO.NS", "name": "UltraTech Cement Ltd", "sector": "Cement & Building Materials", "aliases": ["ULTRATECH", "ULTRACEMCO"]},
+    {"symbol": "WIPRO.NS", "name": "Wipro Limited", "sector": "Information Technology", "aliases": ["WIPRO"]},
+    {"symbol": "TECHM.NS", "name": "Tech Mahindra Ltd", "sector": "Information Technology", "aliases": ["TECHM", "TECH MAHINDRA"]},
+    {"symbol": "HCLTECH.NS", "name": "HCL Technologies Ltd", "sector": "Information Technology", "aliases": ["HCL", "HCLTECH"]},
+    {"symbol": "ZOMATO.NS", "name": "Zomato Ltd", "sector": "Consumer Internet & Quick Commerce", "aliases": ["ZOMATO", "BLINKIT"]},
+    {"symbol": "PAYTM.NS", "name": "One97 Communications Ltd (Paytm)", "sector": "Fintech & Payments", "aliases": ["PAYTM", "ONE97"]},
+    {"symbol": "NYKAA.NS", "name": "FSN E-Commerce Ventures (Nykaa)", "sector": "E-Commerce & Beauty", "aliases": ["NYKAA"]},
+    {"symbol": "SUZLON.NS", "name": "Suzlon Energy Ltd", "sector": "Renewable Energy", "aliases": ["SUZLON"]},
+    {"symbol": "TRENT.NS", "name": "Trent Limited", "sector": "Retail & Fashion (Zudio/Westside)", "aliases": ["TRENT", "ZUDIO", "WESTSIDE"]},
+    {"symbol": "BEL.NS", "name": "Bharat Electronics Ltd", "sector": "Defense & Aerospace", "aliases": ["BEL", "BHARAT ELECTRONICS"]},
+    {"symbol": "HAL.NS", "name": "Hindustan Aeronautics Ltd", "sector": "Defense & Aerospace", "aliases": ["HAL"]},
+    {"symbol": "IRFC.NS", "name": "Indian Railway Finance Corporation", "sector": "Railways & Infrastructure", "aliases": ["IRFC"]},
+    {"symbol": "RVNL.NS", "name": "Rail Vikas Nigam Ltd", "sector": "Railways & Construction", "aliases": ["RVNL"]},
+    {"symbol": "CDSL.NS", "name": "Central Depository Services Ltd", "sector": "Capital Markets Infrastructure", "aliases": ["CDSL"]},
+    {"symbol": "IOLCP.NS", "name": "IOL Chemicals and Pharmaceuticals Ltd", "sector": "Chemicals & Active Pharma", "aliases": ["IOLCP"]},
+    {"symbol": "TATACHEM.NS", "name": "Tata Chemicals Ltd", "sector": "Chemicals", "aliases": ["TATACHEM", "TATA CHEMICALS"]},
+    {"symbol": "DEEPAKNTR.NS", "name": "Deepak Nitrite Ltd", "sector": "Specialty Chemicals", "aliases": ["DEEPAK", "DEEPAKNTR"]},
+    {"symbol": "SWIGGY.NS", "name": "Swiggy Ltd", "sector": "Food Delivery & Quick Commerce", "aliases": ["SWIGGY", "INSTAMART"]},
+]
+
+
+@login_required
+@require_GET
+def api_stock_search(request):
+    """
+    Real-time autocomplete & stock recommendations endpoint:
+    1. Checks existing DB signals matching query.
+    2. Checks INDIAN_STOCK_CATALOG (with aliases like 'adani', 'icici', 'mahindra').
+    3. Queries live yfinance search for any other real tickers across markets.
+    """
+    raw_query = request.GET.get('q', '').strip()
+    if not raw_query:
+        return JsonResponse({'results': []})
+
+    q_upper = raw_query.upper()
+    q_lower = raw_query.lower()
+    results = []
+    seen_symbols = set()
+
+    # 1. Existing in DB
+    existing_signals = StockSignal.objects.filter(
+        models.Q(symbol__icontains=raw_query) | models.Q(company_name__icontains=raw_query)
+    )[:6]
+    for s in existing_signals:
+        seen_symbols.add(s.symbol.upper())
+        results.append({
+            'symbol': s.symbol,
+            'name': s.company_name,
+            'sector': s.sector,
+            'price': float(s.price),
+            'already_added': True,
+            'signal_id': s.id,
+            'source': 'db',
+        })
+
+    # 2. Check INDIAN_STOCK_CATALOG
+    for item in INDIAN_STOCK_CATALOG:
+        sym_clean = item['symbol'].upper()
+        if sym_clean in seen_symbols:
+            continue
+        sym_match = q_upper in sym_clean
+        name_match = q_lower in item['name'].lower()
+        alias_match = any(q_upper in a.upper() or a.upper() in q_upper for a in item.get('aliases', []))
+        if sym_match or name_match or alias_match:
+            seen_symbols.add(sym_clean)
+            results.append({
+                'symbol': item['symbol'],
+                'name': item['name'],
+                'sector': item['sector'],
+                'price': None,
+                'already_added': False,
+                'signal_id': None,
+                'source': 'catalog',
+            })
+            if len(results) >= 8:
+                break
+
+    # 3. If fewer than 5 results and query has at least 2 chars, search yfinance
+    if len(results) < 5 and len(raw_query) >= 2:
+        try:
+            import yfinance as yf
+            s = yf.Search(raw_query)
+            for quote in (s.quotes or [])[:6]:
+                sym = quote.get('symbol', '').upper()
+                if not sym or sym in seen_symbols:
+                    continue
+                qtype = quote.get('quoteType', '')
+                if qtype and qtype.upper() not in ('EQUITY', 'ETF'):
+                    continue
+                # Verify query matches symbol or company name prefix/words to reject false positives
+                name = quote.get('longname') or quote.get('shortname') or sym
+                name_upper = name.upper()
+                if not (q_upper in sym or q_upper in name_upper):
+                    continue
+
+                seen_symbols.add(sym)
+                sector = quote.get('sector') or quote.get('industry') or 'Equity'
+                results.append({
+                    'symbol': sym,
+                    'name': name,
+                    'sector': sector,
+                    'price': None,
+                    'already_added': False,
+                    'signal_id': None,
+                    'source': 'yfinance',
+                })
+                if len(results) >= 10:
+                    break
+        except Exception as e:
+            logger.warning("yfinance live search error: %s", e)
+
+    return JsonResponse({'results': results})
+
+
 @login_required
 @require_POST
 def api_search_or_create_signal(request):
-    """Search for any stock or fetch live market data from yfinance/Azure on-the-fly."""
+    """
+    Search for any stock or fetch live market data from yfinance on-the-fly.
+    Strictly validates tickers: if no real market data or price exists, returns HTTP 404.
+    """
     import yfinance as yf
     try:
         body = json.loads(request.body)
@@ -64,7 +212,7 @@ def api_search_or_create_signal(request):
     if not raw_query:
         return _json_error('Please enter a stock ticker or company name.')
 
-    cleaned = raw_query.upper()
+    cleaned = raw_query.upper().strip()
 
     # 1. Check existing in DB
     existing = StockSignal.objects.filter(symbol__iexact=cleaned).first()
@@ -90,14 +238,52 @@ def api_search_or_create_signal(request):
             'created': False,
         })
 
-    # 2. Fetch live market data via yfinance
-    symbol_to_try = cleaned if ('.' in cleaned or '^' in cleaned) else f"{cleaned}.NS"
+    # 2. Check INDIAN_STOCK_CATALOG for alias matching (e.g. ADANI -> ADANIENT.NS, ICICI -> ICICIBANK.NS)
+    target_symbol = None
+    target_name = None
+    target_sector = None
+
+    for item in INDIAN_STOCK_CATALOG:
+        if cleaned == item['symbol'].replace('.NS', '') or cleaned == item['symbol']:
+            target_symbol = item['symbol']
+            target_name = item['name']
+            target_sector = item['sector']
+            break
+        if any(cleaned == a.upper() for a in item.get('aliases', [])):
+            target_symbol = item['symbol']
+            target_name = item['name']
+            target_sector = item['sector']
+            break
+
+    # If resolved from catalog, check if that symbol already exists in DB
+    if target_symbol:
+        existing_cat = StockSignal.objects.filter(symbol__iexact=target_symbol).first()
+        if existing_cat:
+            return JsonResponse({
+                'signal': {
+                    'id': existing_cat.id,
+                    'symbol': existing_cat.symbol,
+                    'company_name': existing_cat.company_name,
+                    'sector': existing_cat.sector,
+                    'price': float(existing_cat.price),
+                    'market_cap_usd': existing_cat.market_cap_usd,
+                    'market_cap_display': existing_cat.market_cap_display,
+                    'ml_confidence': existing_cat.ml_confidence,
+                    'ml_reason': existing_cat.ml_reason,
+                    'sparkline': existing_cat.sparkline,
+                },
+                'created': False,
+            })
+
+    # 3. Fetch live market data via yfinance
+    symbol_to_try = target_symbol or (cleaned if ('.' in cleaned or '^' in cleaned) else f"{cleaned}.NS")
     price = None
     market_cap = None
-    company_name = None
-    sector = None
+    company_name = target_name
+    sector = target_sector
     sparkline = []
 
+    # Attempt primary ticker
     try:
         t = yf.Ticker(symbol_to_try)
         fast_info = getattr(t, 'fast_info', None)
@@ -105,18 +291,19 @@ def api_search_or_create_signal(request):
             price = round(float(fast_info.last_price), 2)
             market_cap = int(fast_info.market_cap or 50_000_000_000)
             hist = t.history(period='1mo', interval='1d')
-            if not hist.empty:
-                sparkline = [round(float(p), 2) for p in hist['Close'].tolist()]
+            if not hist.empty and 'Close' in hist:
+                sparkline = [round(float(p), 2) for p in hist['Close'].tolist() if p > 0]
             try:
-                company_name = t.info.get('longName') or t.info.get('shortName')
-                sector = t.info.get('sector')
+                info = getattr(t, 'info', {}) or {}
+                company_name = company_name or info.get('longName') or info.get('shortName')
+                sector = sector or info.get('sector') or info.get('industry')
             except Exception:
                 pass
     except Exception as e:
         logger.warning("yfinance fetch error for %s: %s", symbol_to_try, e)
 
     # If .NS failed and user didn't specify a dot, try US/global ticker
-    if price is None and symbol_to_try.endswith('.NS') and '.' not in cleaned:
+    if price is None and symbol_to_try.endswith('.NS') and '.' not in cleaned and not target_symbol:
         try:
             t = yf.Ticker(cleaned)
             fast_info = getattr(t, 'fast_info', None)
@@ -125,39 +312,79 @@ def api_search_or_create_signal(request):
                 price = round(float(fast_info.last_price), 2)
                 market_cap = int(fast_info.market_cap or 50_000_000_000)
                 hist = t.history(period='1mo', interval='1d')
-                if not hist.empty:
-                    sparkline = [round(float(p), 2) for p in hist['Close'].tolist()]
-                company_name = t.info.get('longName') or t.info.get('shortName')
-                sector = t.info.get('sector')
+                if not hist.empty and 'Close' in hist:
+                    sparkline = [round(float(p), 2) for p in hist['Close'].tolist() if p > 0]
+                try:
+                    info = getattr(t, 'info', {}) or {}
+                    company_name = company_name or info.get('longName') or info.get('shortName')
+                    sector = sector or info.get('sector')
+                except Exception:
+                    pass
         except Exception:
             pass
 
-    # 3. Fallback defaults if ticker is speculative or offline
+    # If still not found, try yf.Search to resolve company name to ticker
+    if price is None and len(cleaned) >= 2:
+        try:
+            s = yf.Search(raw_query)
+            for q in (s.quotes or []):
+                sym = q.get('symbol', '').upper()
+                qtype = q.get('quoteType', '')
+                if not sym or (qtype and qtype.upper() not in ('EQUITY', 'ETF')):
+                    continue
+                # Verify match relevance
+                name = q.get('longname') or q.get('shortname') or ''
+                name_words = [w.strip('.,()').upper() for w in name.split()]
+                # If short query (<= 3 chars), require exact symbol match or exact word in company name
+                if len(cleaned) <= 3:
+                    is_match = (sym == cleaned or sym.startswith(cleaned + '.') or cleaned in name_words)
+                else:
+                    is_match = (cleaned in sym or cleaned in name.upper())
+
+                if is_match:
+                    cand_t = yf.Ticker(sym)
+                    if cand_t.fast_info and cand_t.fast_info.last_price:
+                        symbol_to_try = sym
+                        price = round(float(cand_t.fast_info.last_price), 2)
+                        market_cap = int(cand_t.fast_info.market_cap or 50_000_000_000)
+                        company_name = company_name or name
+                        sector = sector or q.get('sector') or q.get('industry')
+                        hist = cand_t.history(period='1mo', interval='1d')
+                        if not hist.empty and 'Close' in hist:
+                            sparkline = [round(float(p), 2) for p in hist['Close'].tolist() if p > 0]
+                        break
+        except Exception as e:
+            logger.warning("yf.Search resolution error: %s", e)
+
+    # 4. STRICT VALIDATION: If no valid quote was found, REJECT with error!
+    if not price or price <= 0:
+        return _json_error(
+            f"Could not find stock '{raw_query}' on NSE/BSE or global markets. Please check the spelling or select from market recommendations.",
+            status=404
+        )
+
+    # Fill metadata defaults only if ticker was verified with real price
     if not company_name:
-        company_name = f"{cleaned.replace('.NS', '')} Enterprises Ltd"
+        company_name = f"{symbol_to_try.replace('.NS', '')} Ltd"
     if not sector:
-        sector = "Diversified & Consumer Growth"
-    if not price:
-        price = 350.00
-    if not market_cap:
-        market_cap = 15_000_000_000
+        sector = "Diversified Equities"
+    if not market_cap or market_cap <= 0:
+        market_cap = 25_000_000_000
 
     # Ensure sparkline has 30 points
     if len(sparkline) < 30:
-        base = price * 0.94
+        base = price * 0.95
         step = (price - base) / 30
         sparkline = [
-            round(base + (i * step) + ((i % 3) - 1) * (price * 0.004), 2)
+            round(base + (i * step) + ((i % 3) - 1) * (price * 0.003), 2)
             for i in range(30)
         ]
 
-    # Compute momentum and score
-    change = 0
-    if len(sparkline) >= 2 and sparkline[0] > 0:
-        change = ((sparkline[-1] - sparkline[0]) / sparkline[0]) * 100
-
-    ml_conf = min(96, max(60, int(76 + (change * 1.4))))
-    ml_reason = f"Breakout momentum with {change:+.1f}% 30-day technical trend; institutional volume accumulation detected."
+    # Compute algorithmic momentum and explainable ML confidence
+    from core.quant import compute_quant_profile
+    quant_profile = compute_quant_profile(sparkline, price)
+    ml_conf = quant_profile.get('ml_score', 65)
+    ml_reason = quant_profile.get('summary') or f"Algorithmic model rates setup with {ml_conf}% confidence."
 
     new_signal = StockSignal.objects.create(
         symbol=symbol_to_try,
@@ -514,6 +741,36 @@ def api_chat_clear(request, signal_id):
     return JsonResponse({'status': 'cleared'})
 
 
+def fetch_live_or_simulated_ltp(symbol, current_price):
+    """
+    Fetch live Last Traded Price (LTP) from market data via yfinance.
+    If market data is unavailable or offline, retains the authentic price without artificial drift.
+    """
+    price = None
+
+    # Resolve alias if needed (e.g. M&M.NS)
+    sym_to_query = symbol
+    for item in INDIAN_STOCK_CATALOG:
+        if symbol.upper().replace('.NS', '') in item.get('aliases', []) or symbol.upper() == item.get('symbol'):
+            sym_to_query = item['symbol']
+            break
+
+    try:
+        import yfinance as yf
+        data = yf.download(sym_to_query, period='1d', progress=False)
+        if not data.empty and 'Close' in data:
+            c = data['Close'].iloc[-1]
+            if hasattr(c, 'iloc'):
+                c = c.iloc[0]
+            val = float(c)
+            if val > 0:
+                price = round(val, 2)
+    except Exception:
+        pass
+
+    return price if price is not None else round(float(current_price), 2)
+
+
 @login_required
 @require_GET
 def api_portfolio(request):
@@ -542,17 +799,10 @@ def api_portfolio(request):
         company_name = sig.company_name if sig else h.symbol
 
         if should_refresh:
-            try:
-                import yfinance as yf
-                t = yf.Ticker(h.symbol)
-                fast_info = getattr(t, 'fast_info', None)
-                if fast_info and fast_info.last_price:
-                    ltp = round(float(fast_info.last_price), 2)
-                    if sig:
-                        sig.price = ltp
-                        sig.save(update_fields=['price'])
-            except Exception:
-                pass
+            ltp = fetch_live_or_simulated_ltp(h.symbol, ltp)
+            if sig:
+                sig.price = ltp
+                sig.save(update_fields=['price'])
 
         qty = h.quantity
         avg = float(h.avg_price)

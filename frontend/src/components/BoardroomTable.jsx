@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import AgentSeat from './AgentSeat';
 import SpeechBubble from './SpeechBubble';
@@ -44,8 +44,52 @@ export default function BoardroomTable({
   const [quantData, setQuantData] = useState(null);
   const [loadingQuant, setLoadingQuant] = useState(false);
   const scrollRef = useRef(null);
+
   const turns = debate?.debate?.turns || [];
   const debateData = debate?.debate || {};
+
+  // Separate non-Jev dialogue turns from Jev compliance turn
+  const nonJevTurns = useMemo(() => {
+    return turns.filter(t => t.agent !== 'jev');
+  }, [turns]);
+
+  const totalTurnsCount = nonJevTurns.length;
+
+  // Dialogue Orchestrator State for To-and-Fro playback
+  const [visibleTurnCount, setVisibleTurnCount] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1); // 1 | 1.5 | 2
+  const [activeSpeaker, setActiveSpeaker] = useState(null); // 'value' | 'risk' | 'jev' | null
+  const [speakerStatus, setSpeakerStatus] = useState('');
+
+  // Visible dialogue turns (declared before useEffect dependencies)
+  const visibleTurns = useMemo(() => {
+    if (isPlaying) {
+      return nonJevTurns.slice(0, Math.max(0, visibleTurnCount));
+    }
+    return nonJevTurns;
+  }, [isPlaying, nonJevTurns, visibleTurnCount]);
+
+  // Net conviction updates dynamically with each turn that appears
+  const convictionValue = useMemo(() => {
+    if (visibleTurns.length === 0) return 0;
+    return visibleTurns.reduce((acc, t) => acc + (t.conviction_delta || 0), 0);
+  }, [visibleTurns]);
+
+  // Jev Panel & VoteBar unlock when debate finishes or is already available
+  const isJevVisible = useMemo(() => {
+    if (isPlaying) {
+      return visibleTurnCount >= totalTurnsCount && totalTurnsCount > 0;
+    }
+    return Boolean(debateFinished || (jevResult && (!isStreaming || debateData?.summary)));
+  }, [isPlaying, visibleTurnCount, totalTurnsCount, debateFinished, jevResult, isStreaming, debateData]);
+
+  const seenSignalsRef = useRef(new Set());
+  const timerRef = useRef(null);
+  const transitionTimerRef = useRef(null);
+  const prevSignalIdRef = useRef(null);
+  const prevStreamingRef = useRef(isStreaming);
 
   // Fetch explainable quant ML profile
   useEffect(() => {
@@ -63,12 +107,175 @@ export default function BoardroomTable({
       });
   }, [signal?.id]);
 
-  // Auto-scroll to latest turn as messages arrive in real-time
+  // Handle Signal change: ensure new/selected signal displays its debate cleanly
+  useEffect(() => {
+    if (!signal?.id) return;
+
+    const isNewSignal = prevSignalIdRef.current !== signal.id;
+    prevSignalIdRef.current = signal.id;
+
+    if (isNewSignal) {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+      setIsPlaying(false);
+      setIsPaused(false);
+      setActiveSpeaker(null);
+      setSpeakerStatus('');
+      setVisibleTurnCount(nonJevTurns.length);
+    }
+  }, [signal?.id, nonJevTurns.length]);
+
+  // Dynamic speaker indicator during live streaming
+  useEffect(() => {
+    if (!isStreaming) return;
+
+    const count = nonJevTurns.length;
+    if (count === 0) {
+      setActiveSpeaker('value');
+      setSpeakerStatus('Value Agent is formulating opening investment thesis & growth catalysts...');
+    } else if (count === 1) {
+      setActiveSpeaker('risk');
+      setSpeakerStatus('Risk Agent is scrutinizing valuation multiples & downside risks...');
+    } else if (count === 2) {
+      setActiveSpeaker('value');
+      setSpeakerStatus('Value Agent is preparing counter-rebuttal on competitive moats...');
+    } else if (count === 3) {
+      setActiveSpeaker('risk');
+      setSpeakerStatus('Risk Agent is probing governance, liquidity & cycle risks...');
+    } else if (count === 4) {
+      setActiveSpeaker('value');
+      setSpeakerStatus('Value Agent is summarizing net conviction thesis...');
+    } else if (count >= 5) {
+      if (!jevResult) {
+        setActiveSpeaker('jev');
+        setSpeakerStatus('Jev Compliance Officer is auditing trade against risk constraints...');
+      } else {
+        setActiveSpeaker(null);
+        setSpeakerStatus('');
+      }
+    }
+  }, [isStreaming, nonJevTurns.length, jevResult]);
+
+  // Dialogue Orchestrator Stepping Effect (Only active when user explicitly clicks "Replay Debate")
+  useEffect(() => {
+    if (!isPlaying || isPaused) return;
+
+    // Case 1: Waiting to reveal Turn 1
+    if (visibleTurnCount === 0) {
+      if (totalTurnsCount === 0) {
+        setIsPlaying(false);
+        return;
+      }
+      setActiveSpeaker('value');
+      setSpeakerStatus('Value Agent is presenting opening investment thesis...');
+      timerRef.current = setTimeout(() => {
+        setVisibleTurnCount(1);
+      }, Math.round(600 / playbackSpeed));
+      return () => clearTimeout(timerRef.current);
+    }
+
+    // Case 2: In the middle of dialogue turns (1 to totalTurnsCount - 1)
+    if (visibleTurnCount > 0 && visibleTurnCount < totalTurnsCount) {
+      const nextTurn = nonJevTurns[visibleTurnCount];
+      const nextSpeaker = nextTurn ? nextTurn.agent : (visibleTurnCount % 2 === 1 ? 'risk' : 'value');
+
+      const readDuration = Math.round(1800 / playbackSpeed);
+      const switchTime = Math.round(800 / playbackSpeed);
+
+      transitionTimerRef.current = setTimeout(() => {
+        setActiveSpeaker(nextSpeaker);
+        if (nextSpeaker === 'risk') {
+          setSpeakerStatus('Risk Agent is scrutinizing valuation multiples & downside risks...');
+        } else {
+          setSpeakerStatus('Value Agent is preparing counter-rebuttal on competitive moats...');
+        }
+      }, switchTime);
+
+      timerRef.current = setTimeout(() => {
+        setVisibleTurnCount(c => c + 1);
+      }, readDuration);
+
+      return () => {
+        clearTimeout(timerRef.current);
+        clearTimeout(transitionTimerRef.current);
+      };
+    }
+
+    // Case 3: All dialogue turns revealed, transition to Jev compliance
+    if (visibleTurnCount >= totalTurnsCount && totalTurnsCount > 0) {
+      setActiveSpeaker('jev');
+      setSpeakerStatus('Jev Compliance Officer is auditing trade against risk constraints...');
+
+      timerRef.current = setTimeout(() => {
+        setIsPlaying(false);
+        setActiveSpeaker(null);
+        setSpeakerStatus('');
+        setVisibleTurnCount(totalTurnsCount);
+      }, Math.round(900 / playbackSpeed));
+
+      return () => clearTimeout(timerRef.current);
+    }
+  }, [isPlaying, isPaused, visibleTurnCount, nonJevTurns, totalTurnsCount, playbackSpeed]);
+
+  // Clean up timers on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    };
+  }, []);
+
+  // Controls: Skip to end
+  const handleSkipToEnd = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    setVisibleTurnCount(totalTurnsCount);
+    setIsPlaying(false);
+    setIsPaused(false);
+    setActiveSpeaker(null);
+    setSpeakerStatus('');
+  }, [totalTurnsCount]);
+
+  // Controls: Replay debate
+  const handleReplayDebate = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current);
+    setVisibleTurnCount(0);
+    setIsPlaying(true);
+    setIsPaused(false);
+    setActiveSpeaker('value');
+    setSpeakerStatus('Value Agent is formulating opening investment thesis & growth catalysts...');
+  }, []);
+
+  // Controls: Toggle Pause
+  const handleTogglePause = useCallback(() => {
+    setIsPaused(p => !p);
+  }, []);
+
+  // Keyboard shortcuts: Space toggles pause, S skips to end
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      if (e.code === 'Space' && isPlaying) {
+        e.preventDefault();
+        setIsPaused(p => !p);
+      } else if (e.key.toLowerCase() === 's' && isPlaying) {
+        e.preventDefault();
+        handleSkipToEnd();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, handleSkipToEnd]);
+
+  // Auto-scroll to latest turn as visible turns or status updates
   useEffect(() => {
     if (scrollRef.current && activeTab === 'debate') {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [turns.length, isStreaming, activeTab]);
+  }, [visibleTurns?.length, isStreaming, isPlaying, speakerStatus, activeTab]);
+
+
 
   // Sparkline data for fundamentals tab
   const sparkData = useMemo(() => {
@@ -89,49 +296,29 @@ export default function BoardroomTable({
 
   if (!signal) return <EmptyState />;
 
-  // Determine active speaking agent
-  let currentSpeakingAgent = null;
-  if (isStreaming) {
-    const turnsCount = turns.length;
-    if (turnsCount === 0 || turnsCount === 2 || turnsCount === 4) {
-      currentSpeakingAgent = 'value';
-    } else if (turnsCount === 1 || turnsCount === 3) {
-      currentSpeakingAgent = 'risk';
-    } else if (turnsCount >= 5) {
-      currentSpeakingAgent = 'jev';
-    }
-  }
-
-  // Calculate net conviction dynamically as turns stream in
-  const convictionValue = debateData.runningConviction !== undefined
-    ? debateData.runningConviction
-    : turns.reduce((acc, t) => acc + (t.conviction_delta || 0), 0);
-
-  const isJevVisible = debateFinished || !!jevResult;
-
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {/* Top Bar with Stock Overview & Layout Controls */}
-      <div className="p-4 border-b border-border bg-panel/40 backdrop-blur-sm sticky top-0 z-20">
+      <div className="px-5 py-3.5 border-b border-white/[0.08] bg-[#0B1020]/95 backdrop-blur-md sticky top-0 z-30 shadow-md">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4 flex-wrap">
           {/* Stock identity */}
           <div className="flex items-center gap-3">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <h2 className="font-mono text-xl font-bold text-gold tracking-tight">{signal.symbol}</h2>
                 <span className="font-mono text-base font-semibold text-text">
                   ₹{Number(signal.price).toLocaleString()}
                 </span>
                 {signal.market_cap_display && (
-                  <span className="text-xs font-mono text-muted px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
+                  <span className="text-[11px] font-mono text-gold/80 px-2 py-0.5 rounded-md bg-gold/[0.08] border border-gold/[0.15]">
                     {signal.market_cap_display}
                   </span>
                 )}
-                <span className={`text-xs font-mono px-2 py-0.5 rounded-md border ${Number(priceChangePct) >= 0 ? 'bg-value/10 text-value border-value/20' : 'bg-risk/10 text-risk border-risk/20'}`}>
+                <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md border ${Number(priceChangePct) >= 0 ? 'bg-value/10 text-value border-value/20' : 'bg-risk/10 text-risk border-risk/20'}`}>
                   {Number(priceChangePct) >= 0 ? `+${priceChangePct}%` : `${priceChangePct}%`} (30d)
                 </span>
               </div>
-              <p className="text-xs text-muted mt-0.5">
+              <p className="text-xs text-muted mt-1">
                 {signal.company_name} · <span className="text-text/80">{signal.sector}</span>
               </p>
             </div>
@@ -142,9 +329,9 @@ export default function BoardroomTable({
             {onRegenerateDebate && (
               <button
                 onClick={onRegenerateDebate}
-                disabled={isStreaming}
-                className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-gold/15 text-gold border border-gold/30 hover:bg-gold/25 transition disabled:opacity-40 flex items-center gap-1.5 shadow-sm"
-                title="Regenerate dynamic debate in real time"
+                disabled={isStreaming || isPlaying}
+                className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-gold/15 text-gold border border-gold/30 hover:bg-gold/25 transition disabled:opacity-40 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                title="Regenerate dynamic debate in real time via Azure OpenAI"
               >
                 <span>{isStreaming ? '⚡' : '✨'}</span>
                 <span>{isStreaming ? 'Debating...' : 'Re-Debate'}</span>
@@ -156,7 +343,7 @@ export default function BoardroomTable({
               {onToggleLeft && (
                 <button
                   onClick={onToggleLeft}
-                  className={`px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1.5
+                  className={`px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer
                     ${!leftCollapsed ? 'bg-gold/20 text-gold border border-gold/30' : 'text-muted hover:text-text'}`}
                   title="Toggle Stock Signals Feed ([)"
                 >
@@ -167,7 +354,7 @@ export default function BoardroomTable({
               {onToggleFocus && (
                 <button
                   onClick={onToggleFocus}
-                  className={`px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1.5
+                  className={`px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer
                     ${leftCollapsed && rightCollapsed ? 'bg-gold/20 text-gold border border-gold/30' : 'text-muted hover:text-text'}`}
                   title="Toggle Focus Mode (Both sidebars collapsed) (F)"
                 >
@@ -178,7 +365,7 @@ export default function BoardroomTable({
               {onToggleRight && (
                 <button
                   onClick={onToggleRight}
-                  className={`px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1.5
+                  className={`px-2.5 py-1 rounded-lg font-medium transition flex items-center gap-1.5 cursor-pointer
                     ${!rightCollapsed ? 'bg-gold/20 text-gold border border-gold/30' : 'text-muted hover:text-text'}`}
                   title="Toggle Research Chat (])"
                 >
@@ -191,29 +378,32 @@ export default function BoardroomTable({
         </div>
 
         {/* Navigation Tabs inside the Boardroom */}
-        <div className="max-w-5xl mx-auto flex items-center gap-4 mt-3 border-t border-border/40 pt-2">
+        <div className="max-w-5xl mx-auto flex items-center gap-2 mt-2.5 pt-2 border-t border-white/[0.06]">
           <button
             onClick={() => setActiveTab('debate')}
-            className={`text-xs font-semibold pb-1.5 px-2 border-b-2 transition flex items-center gap-1.5
+            className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer
               ${activeTab === 'debate'
-                ? 'border-gold text-gold'
-                : 'border-transparent text-muted hover:text-text'}`}
+                ? 'bg-gold/15 text-gold border border-gold/30 shadow-sm'
+                : 'text-muted hover:text-text hover:bg-white/[0.04]'}`}
           >
             <span>💬</span>
-            <span>Committee Debate ({turns.length} turns)</span>
+            <span>Committee Debate</span>
+            <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-muted ml-0.5">
+              {isPlaying && visibleTurnCount > 0 ? `Turn ${visibleTurnCount}/${totalTurnsCount}` : `${totalTurnsCount} turns`}
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('fundamentals')}
-            className={`text-xs font-semibold pb-1.5 px-2 border-b-2 transition flex items-center gap-1.5
+            className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer
               ${activeTab === 'fundamentals'
-                ? 'border-gold text-gold'
-                : 'border-transparent text-muted hover:text-text'}`}
+                ? 'bg-gold/15 text-gold border border-gold/30 shadow-sm'
+                : 'text-muted hover:text-text hover:bg-white/[0.04]'}`}
           >
             <span>📈</span>
             <span>Valuation & Technicals</span>
           </button>
           {debateData.skill_name && (
-            <span className="ml-auto text-[11px] font-mono text-muted/70">
+            <span className="ml-auto text-[11px] font-mono text-muted/70 shrink-0 hidden sm:inline">
               Style: <span className="text-gold/90">{debateData.skill_name}</span>
             </span>
           )}
@@ -233,24 +423,24 @@ export default function BoardroomTable({
                     agent="value"
                     name="Value Agent"
                     tags={debateData.value_tags || ['Analytical', 'Growth Catalysts']}
-                    isSpeaking={currentSpeakingAgent === 'value'}
+                    isSpeaking={activeSpeaker === 'value'}
                   />
                 </div>
 
                 {/* Center Conviction Tug-of-War Gauge */}
                 <div className="flex-1 max-w-sm px-2 flex flex-col items-center">
-                  <div className="text-[10px] font-mono uppercase tracking-widest text-muted mb-1 flex items-center gap-1.5">
-                    <span>Conviction Tug-of-War</span>
-                    <span className={`font-semibold ${convictionValue > 0 ? 'text-value' : convictionValue < 0 ? 'text-risk' : 'text-muted'}`}>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-muted/90 mb-1.5 flex items-center gap-1.5">
+                    <span className="text-text/70">Conviction Tug-of-War</span>
+                    <span className={`font-bold text-[11px] ${convictionValue > 0 ? 'text-value' : convictionValue < 0 ? 'text-risk' : 'text-muted'}`}>
                       {convictionValue > 0 ? `+${convictionValue} Bullish` : convictionValue < 0 ? `${convictionValue} Bearish` : 'Neutral (0)'}
                     </span>
                   </div>
                   <div className="w-full">
                     <ConvictionBar value={convictionValue} />
                   </div>
-                  <div className="flex justify-between w-full text-[9px] font-mono text-muted/70 mt-1">
-                    <span className="text-value">◀ Bull Thesis</span>
-                    <span className="text-risk">Risk Headwinds ▶</span>
+                  <div className="flex justify-between w-full text-[10px] font-mono mt-1.5">
+                    <span className="text-value/90 font-medium">◀ Bull Thesis</span>
+                    <span className="text-risk/90 font-medium">Risk Headwinds ▶</span>
                   </div>
                 </div>
 
@@ -260,42 +450,158 @@ export default function BoardroomTable({
                     agent="risk"
                     name="Risk Agent"
                     tags={debateData.risk_tags || ['Prudent', 'Downside Scrutiny']}
-                    isSpeaking={currentSpeakingAgent === 'risk'}
+                    isSpeaking={activeSpeaker === 'risk'}
                   />
+                </div>
+              </div>
+
+              {/* Dais Toolbar: Playback controls + To-and-fro Step Indicators */}
+              <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-white/10 text-xs flex-wrap bg-white/[0.02] -mx-4 -mb-4 px-4 pb-3 rounded-b-2xl">
+                {/* Progress info & dots */}
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[11px] font-mono text-muted flex items-center gap-1.5">
+                    {isPlaying ? (
+                      <span className="text-gold font-semibold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-gold animate-ping" />
+                        Replay Turn {Math.min(visibleTurnCount + 1, totalTurnsCount)} of {totalTurnsCount || 5}
+                      </span>
+                    ) : isStreaming ? (
+                      <span className="text-gold font-semibold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-gold animate-ping" />
+                        Live Debate: Turn {totalTurnsCount} of 5
+                      </span>
+                    ) : (
+                      <span>{totalTurnsCount} turns total</span>
+                    )}
+                  </span>
+
+                  {totalTurnsCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.max(totalTurnsCount, isStreaming ? 5 : totalTurnsCount) }).map((_, idx) => (
+                        <span
+                          key={idx}
+                          className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                            idx < (isPlaying ? visibleTurnCount : totalTurnsCount)
+                              ? (idx % 2 === 0 ? 'bg-value ring-1 ring-value/50' : 'bg-risk ring-1 ring-risk/50')
+                              : 'bg-white/10'
+                          }`}
+                          title={`Turn ${idx + 1}: ${idx % 2 === 0 ? 'Value Agent' : 'Risk Agent'}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Playback Controls */}
+                <div className="flex items-center gap-2">
+                  {isPlaying && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleTogglePause}
+                        className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-muted hover:text-text transition flex items-center gap-1 cursor-pointer"
+                        title="Pause / Resume debate playback (Space)"
+                      >
+                        <span>{isPaused ? '▶' : '⏸'}</span>
+                        <span>{isPaused ? 'Resume' : 'Pause'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPlaybackSpeed(s => s === 1 ? 1.5 : s === 1.5 ? 2 : 1)}
+                        className="px-2.5 py-1 text-xs font-mono font-medium rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gold transition cursor-pointer"
+                        title="Toggle speed: 1x, 1.5x, 2x"
+                      >
+                        {playbackSpeed}x
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSkipToEnd}
+                        className="px-3 py-1 text-xs font-semibold rounded-lg bg-gold/20 hover:bg-gold/30 border border-gold/40 text-gold transition flex items-center gap-1 cursor-pointer shadow-sm"
+                        title="Skip to end of debate (S)"
+                      >
+                        <span>⏭</span>
+                        <span>Skip to End</span>
+                      </button>
+                    </>
+                  )}
+
+                  {!isPlaying && totalTurnsCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleReplayDebate}
+                      className="px-3 py-1 text-xs font-medium rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-muted hover:text-gold transition flex items-center gap-1.5 cursor-pointer"
+                      title="Replay the debate step by step"
+                    >
+                      <span>↺</span>
+                      <span>Replay Debate</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Speech Bubbles Stream */}
+            {/* Speech Bubbles Stream — Opposing To-and-Fro Conversation */}
             <div
               ref={scrollRef}
-              className="space-y-3 min-h-[220px] max-h-[460px] overflow-y-auto px-1 py-1 scroll-smooth"
+              className="flex flex-col space-y-2 min-h-[220px] max-h-[460px] xl:max-h-[560px] 2xl:max-h-[640px] overflow-y-auto px-1 py-1 scroll-smooth"
             >
-              {turns.length === 0 && !isStreaming && (
+              {totalTurnsCount === 0 && !isStreaming && !isPlaying && (
                 <div className="text-center py-12 text-muted text-xs border border-dashed border-border rounded-2xl">
                   No debate turns recorded. Click "Re-Debate" above to convene the committee.
                 </div>
               )}
 
-              {turns.filter(t => t.agent !== 'jev').map((turn, i) => (
+              {/* Render visible turns (Value on left, Risk on right) */}
+              {visibleTurns.map((turn, i) => (
                 <SpeechBubble
                   key={turn.order || i}
                   turn={turn}
-                  isLatest={i === turns.filter(t => t.agent !== 'jev').length - 1 && isStreaming}
+                  isLatest={(isStreaming && i === visibleTurns.length - 1) || (isPlaying && i === visibleTurnCount - 1)}
                   onAskAgent={onAskAgent}
+                  speed={Math.round(12 / playbackSpeed)}
                 />
               ))}
 
-              {/* Live real-time indicator */}
-              {isStreaming && (
-                <div className="flex items-center gap-2.5 py-2.5 px-4 rounded-xl bg-gold/10 border border-gold/30 text-xs text-gold animate-pulse">
-                  <span className="w-2.5 h-2.5 rounded-full bg-gold animate-ping" />
-                  <span className="font-mono">
-                    {currentSpeakingAgent === 'value' && 'Value Agent is formulating investment thesis & growth catalysts...'}
-                    {currentSpeakingAgent === 'risk' && 'Risk Agent is scrutinizing valuation multiples & downside risks...'}
-                    {currentSpeakingAgent === 'jev' && 'Jev is running deterministic compliance rule checks...'}
-                    {!currentSpeakingAgent && 'Investment Committee is convening...'}
-                  </span>
+              {/* Dynamic to-and-fro active speaker indicator (Appears on the speaker's opposing side) */}
+              {(isStreaming || isPlaying) && activeSpeaker && (
+                <div className={`w-full flex ${
+                  activeSpeaker === 'value'
+                    ? 'justify-start'
+                    : activeSpeaker === 'risk'
+                      ? 'justify-end'
+                      : 'justify-center'
+                } my-2`}>
+                  <div className={`flex items-center gap-2.5 py-2.5 px-4 rounded-xl border text-xs shadow-sm animate-pulse max-w-[85%] md:max-w-[70%] ${
+                    activeSpeaker === 'value'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 rounded-tl-xs'
+                      : activeSpeaker === 'risk'
+                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-400 rounded-tr-xs'
+                        : 'bg-gold/10 border-gold/30 text-gold'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full animate-ping shrink-0 ${
+                      activeSpeaker === 'value' ? 'bg-emerald-400' : activeSpeaker === 'risk' ? 'bg-rose-400' : 'bg-gold'
+                    }`} />
+                    <span className="font-mono font-medium">
+                      {speakerStatus || (
+                        activeSpeaker === 'value'
+                          ? 'Value Agent is formulating investment thesis & growth catalysts...'
+                          : activeSpeaker === 'risk'
+                            ? 'Risk Agent is scrutinizing valuation multiples & downside risks...'
+                            : 'Jev is running deterministic compliance rule checks...'
+                      )}
+                    </span>
+                    {isPlaying && (
+                      <button
+                        type="button"
+                        onClick={handleSkipToEnd}
+                        className="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded bg-white/10 hover:bg-white/20 border border-white/20 transition cursor-pointer"
+                      >
+                        Skip ⏭
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -325,7 +631,7 @@ export default function BoardroomTable({
             )}
 
             {/* Lesson Card */}
-            {lessonCard && (
+            {lessonCard && isJevVisible && (
               <div className="p-4 rounded-2xl bg-gold/5 border border-gold/20 text-sm shadow-sm">
                 <div className="text-gold font-semibold text-xs uppercase tracking-wider mb-1 flex items-center gap-1.5">
                   <span>💡</span>
@@ -485,7 +791,7 @@ export default function BoardroomTable({
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => onAskAgent && onAskAgent('value', `What is the investment thesis given the ML Quant score of ${quantData?.ml_score || signal.ml_confidence}% and RSI at ${quantData?.rsi || '58'}?`)}
-                className="px-4 py-2 text-xs font-semibold rounded-xl bg-gold/15 border border-gold/30 text-gold hover:bg-gold/25 transition flex items-center gap-1.5 shadow-sm"
+                className="px-4 py-2 text-xs font-semibold rounded-xl bg-gold/15 border border-gold/30 text-gold hover:bg-gold/25 transition flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <span>💬</span>
                 <span>Debate this ML Signal in Boardroom Chat →</span>

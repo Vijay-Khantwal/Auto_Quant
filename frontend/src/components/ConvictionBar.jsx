@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 
 export default function ConvictionBar({ value = 0 }) {
   // value ranges from about -50 to +50
-  // Normalize to percentage: 0 = center, -100 = full left (risk), +100 = full right (value)
+  // Normalize to percentage: 0 = center, -100 = full right (cautious), +100 = full left (bullish)
+  // Value Agent is on the left (Bullish), Risk Agent is on the right (Cautious)
   const pct = Math.max(-100, Math.min(100, value * 2));
-  const markerPct = 50 + pct / 2;
+  const markerPct = Math.max(5, Math.min(95, 50 - pct / 2));
 
   return (
     <div className="py-3">

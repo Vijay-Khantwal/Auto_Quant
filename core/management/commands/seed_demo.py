@@ -87,7 +87,7 @@ class Command(BaseCommand):
 
         signals = {}
         for item in data:
-            sig, created = StockSignal.objects.get_or_create(
+            sig, created = StockSignal.objects.update_or_create(
                 symbol=item['symbol'],
                 defaults={
                     'company_name': item['company_name'],

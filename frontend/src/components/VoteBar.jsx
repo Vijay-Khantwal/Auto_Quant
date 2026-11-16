@@ -73,20 +73,39 @@ export default function VoteBar({
           <button
             type="button"
             onClick={() => onQuantityChange(Math.max(1, quantity - 5))}
-            className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-muted transition"
+            className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-muted transition cursor-pointer"
             title="Decrease 5 shares"
           >-5</button>
-          <span className="w-10 text-center font-bold text-gold">{quantity}</span>
+          <input
+            type="number"
+            min="1"
+            max={maxQty}
+            value={quantity || ''}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '') {
+                onQuantityChange(1);
+                return;
+              }
+              const val = parseInt(raw, 10);
+              if (!isNaN(val)) {
+                onQuantityChange(Math.max(1, Math.min(maxQty, val)));
+              }
+            }}
+            className="w-16 text-center font-bold font-mono text-gold bg-white/[0.06] border border-gold/30 hover:border-gold/50 focus:border-gold rounded-md py-0.5 px-1 text-xs focus:outline-none focus:ring-1 focus:ring-gold/30 transition shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text"
+            title="Type exact share quantity"
+            placeholder="Qty"
+          />
           <button
             type="button"
             onClick={() => onQuantityChange(Math.min(maxQty, quantity + 5))}
-            className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-muted transition"
+            className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-muted transition cursor-pointer"
             title="Increase 5 shares"
           >+5</button>
           <button
             type="button"
             onClick={() => onQuantityChange(maxQty)}
-            className="px-2 py-0.5 rounded bg-gold/10 border border-gold/20 hover:bg-gold/20 text-gold transition"
+            className="px-2 py-0.5 rounded bg-gold/10 border border-gold/20 hover:bg-gold/20 text-gold transition cursor-pointer"
             title="Maximum allowed budget shares"
           >Max</button>
         </div>

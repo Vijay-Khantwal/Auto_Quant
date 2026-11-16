@@ -2,42 +2,50 @@
 {% block title %}Sign Up — AutoQuant{% endblock %}
 
 {% block content %}
-<div class="page-container" style="max-width:440px;">
-    <div class="glass-card">
-        <h2 style="margin-bottom:1.5rem; text-align:center;">Create Account</h2>
+<div class="auth-wrapper" style="min-height: calc(100vh - 130px); display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;">
+    <div class="auth-card" style="width: 100%; max-width: 440px; margin: 0 auto;">
+        <div class="glass-card" style="padding: 2.25rem; border-radius: 1.5rem; background: rgba(19, 24, 34, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 80px rgba(245, 196, 81, 0.06);">
+            <div style="text-align: center; margin-bottom: 1.75rem;">
+                <div style="font-size: 2.2rem; line-height: 1; margin-bottom: 0.5rem; color: var(--gold);">◈</div>
+                <h2 style="font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem;">Create Account</h2>
+                <p style="font-size: 0.85rem; color: var(--muted);">Join AutoQuant and simulate Dalal Street committees</p>
+            </div>
 
-        {% if form.errors %}
-            <div class="form-errors">
-                <ul>
-                    {% for field in form %}
-                        {% for error in field.errors %}
+            {% if form.errors %}
+                <div class="form-errors" style="background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); border-radius: 0.75rem; padding: 0.75rem 1rem; margin-bottom: 1.25rem; color: var(--risk); font-size: 0.85rem;">
+                    <ul style="margin: 0; padding-left: 1.25rem;">
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
                             <li>{{ error }}</li>
                         {% endfor %}
-                    {% endfor %}
-                    {% for error in form.non_field_errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-
-        <form method="post">
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="form-group">
-                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}
-                        <small class="text-muted" style="font-size:0.75rem;">{{ field.help_text }}</small>
-                    {% endif %}
+                    </ul>
                 </div>
-            {% endfor %}
-            <button type="submit" class="btn btn-primary" style="width:100%;">Sign Up</button>
-        </form>
+            {% endif %}
 
-        <p style="text-align:center; margin-top:1.25rem; font-size:0.9rem;" class="text-muted">
-            Already have an account? <a href="{% url 'login' %}" style="color:var(--gold);">Log in</a>
-        </p>
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label for="{{ field.id_for_label }}" style="display: block; font-size: 0.8rem; font-weight: 500; color: var(--muted); margin-bottom: 0.4rem;">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small class="text-muted" style="font-size: 0.75rem; display: block; margin-top: 0.25rem; color: var(--muted); opacity: 0.7;">{{ field.help_text }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; font-weight: 600; border-radius: 0.85rem; background: var(--gradient-gold); color: #0B1020; border: none; cursor: pointer; box-shadow: 0 4px 16px rgba(245, 196, 81, 0.3); margin-top: 0.5rem;">Create Account</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid rgba(255, 255, 255, 0.06); font-size: 0.85rem; color: var(--muted);">
+                Already have an account? <a href="{% url 'login' %}" style="color: var(--gold); font-weight: 600; text-decoration: none;">Log in →</a>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
+
+{% block footer %}{% endblock %}

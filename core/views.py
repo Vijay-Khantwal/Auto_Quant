@@ -250,9 +250,17 @@ def portfolio_view(request):
     total_invested = 0.0
     total_market_value = 0.0
 
+    should_refresh = request.GET.get('refresh') == 'true'
     for h in portfolio.holdings.all():
         sig = signal_map.get(h.symbol)
         ltp = float(sig.price) if sig else float(h.avg_price)
+        if should_refresh:
+            from core.api import fetch_live_or_simulated_ltp
+            ltp = fetch_live_or_simulated_ltp(h.symbol, ltp)
+            if sig:
+                sig.price = ltp
+                sig.save(update_fields=['price'])
+
         cost = float(h.avg_price) * h.quantity
         val = ltp * h.quantity
         pnl = val - cost
@@ -306,7 +314,13 @@ def audit_log(request):
 
 def syllabus(request):
     """Presentation aid listing every syllabus concept and its location."""
-    return render(request, 'syllabus.html')
+    from core.models import StockSignal, Trade, SkillProfile
+    return render(request, 'syllabus.html', {
+        'signals_count': StockSignal.objects.count(),
+        'trades_count': Trade.objects.count(),
+        'skills_count': SkillProfile.objects.count(),
+        'tests_count': 27,
+    })
 
 
 def custom_404(request, exception):
