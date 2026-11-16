@@ -39,7 +39,7 @@ class RiskSettingsForm(forms.ModelForm):
 
 
 class SignupForm(UserCreationForm):
-    """Extends UserCreationForm with an email field."""
+    """Extends UserCreationForm with an email field, case-insensitive uniqueness, and whitespace cleanup."""
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={
         'class': 'form-input', 'placeholder': 'you@example.com',
     }))
@@ -54,6 +54,18 @@ class SignupForm(UserCreationForm):
         for field in self.fields.values():
             if 'class' not in field.widget.attrs:
                 field.widget.attrs['class'] = 'form-input'
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username', '').strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("A user with this username already exists.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("A user with this email address already exists.")
+        return email
 
 
 class TradeFilterForm(forms.Form):

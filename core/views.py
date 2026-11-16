@@ -52,7 +52,7 @@ def signup(request):
             Portfolio.objects.create(user=user)
             # Load default balanced skill
             _create_default_skill(user)
-            login(request, user)
+            login(request, user, backend='core.auth_backend.EmailOrUsernameModelBackend')
             messages.success(request, 'Welcome to AutoQuant Boardroom!')
             return redirect('boardroom')
     else:
