@@ -38,7 +38,7 @@ Open **http://127.0.0.1:8000** in your browser.
 
 | Role | Username | Password | Notes |
 |---|---|---|---|
-| **Demo User** | `demo` | `demo1234` | Member of `Analyst` group; has seeded portfolio (₹100,000 virtual cash) and preloaded skills |
+| **Demo User** | `demo` | `demo1234` | Member of `Analyst` group; has seeded portfolio (virtual cash) and preloaded skills |
 | **Superuser** | `admin` | `admin1234` | Full Django Admin access at `/admin/` |
 
 ---
@@ -75,32 +75,6 @@ Open **http://127.0.0.1:8000** in your browser.
    - Visit `/admin/` to show the models and Jev audit records.
 7. **Syllabus Coverage Map (`/syllabus/`)**:
    - Open `/syllabus/` to walk through every requirement and its exact file implementation.
-
----
-
-## 🗺 Django Syllabus Coverage Map
-
-Every syllabus unit is visibly implemented in the project. View the interactive map in the app at `/syllabus/`.
-
-| Unit | Concept | Where it appears in AutoQuant | File Path |
-|---|---|---|---|
-| **II** | Views, URL mapping, Request/Response | Page views & JSON API views | `core/views.py`, `core/api.py`, `core/urls.py` |
-| **II** | URL parameters | `/signal/<int:signal_id>/`, `/api/debate/<int:signal_id>/` | `core/urls.py` |
-| **II** | **Regex in URLs (minimal, one use)** | `re_path(r'^ticker/(?P<symbol>[A-Z0-9]+\.[A-Z]{2})/$', ...)` for NSE tickers like `IOLCP.NS` | `core/urls.py:27` |
-| **II** | Error handling | Custom `404.html`, `500.html`, error handlers, JSON API errors | `core/views.py`, `core/templates/404.html` |
-| **III** | Templates, DTL, tags, filters, for/if | Landing, history, settings, skills, syllabus pages | `core/templates/*.html` |
-| **III** | Template inheritance | `base.html` with `{% block content %}` and `{% block footer %}` | `core/templates/base.html` |
-| **III** | Debugging | `DEBUG=True`, logging config, `logger.info` in Jev | `autoquant/settings.py`, `core/jev.py` |
-| **III** | Testing | 21 automated tests covering Jev, Trade API, Auth, Forms, Regex, Chat | `core/tests.py` |
-| **IV** | Forms, GET/POST, validation | `RiskSettingsForm`, `SignupForm`, `SkillUploadForm`, `TradeFilterForm` (GET) | `core/forms.py` |
-| **IV** | CSRF protection | `{% csrf_token %}` in forms; React reads `csrftoken` cookie and sends `X-CSRFToken` | `core/forms.py`, `frontend/src/api.js` |
-| **IV** | POST-redirect-GET | Form submissions redirect with Django `messages` flash | `core/views.py` |
-| **V** | Models, Migrations, ORM, FKs | 8 related models: `RiskSettings`, `Portfolio`, `Holding`, `SkillProfile`, `StockSignal`, `Debate`, `DebateTurn`, `Trade` | `core/models.py` |
-| **V** | Admin, Groups, Permissions | All models registered; `Analyst` group; `can_view_audit_log` permission | `core/admin.py`, `core/models.py` |
-| **V** | Database configuration | Explicit SQLite `DATABASES` configuration with comments | `autoquant/settings.py:59` |
-| **VI** | **Session (minimal, one use)** | `request.session['last_signal_id']` remembers last signal; home page displays "Resume last debate" | `core/views.py:25`, `core/views.py:243` |
-| **VI** | **Cookie (minimal, one use)** | `aq_onboarded` cookie set on first Boardroom visit to hide onboarding tour on return | `core/views.py:94` |
-| **VI** | Users, login/logout, `@login_required` | Built-in authentication, `@login_required` on all member views | `core/views.py`, `core/urls.py` |
 
 ---
 
